@@ -9,7 +9,6 @@ from langchain_community.document_loaders import CSVLoader  # @type: ignore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # from langchain_community.chains import
-from langchain_core.documents.base import Document
 # from langchain import PromptTemplate
 # from langchain.chains import LLMChain
 
@@ -28,8 +27,7 @@ def generate_knowledge_from_csv():
                 encoding="utf-8",
                 csv_args={"delimiter": ","},
             )
-            data: list[Document] = loader.load()
-            total_data.extend(data)
+            total_data.extend(loader.load())
     return total_data
 
 
