@@ -1,0 +1,7 @@
+langchain-ollama
+streamlit
+faiss-cpu
+langchain
+streamlit_chat
+langchain-community
+fastembed
