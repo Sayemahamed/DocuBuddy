@@ -2,6 +2,7 @@
 
 import os
 
+import fastembed
 from langchain_ollama.llms import OllamaLLM
 from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -40,4 +41,5 @@ if __name__ == "__main__":
     data = splitter.split_documents(generate_knowledge_from_csv())
     db = FAISS.from_documents(data, embedding_model)
     print("finish")
-    FAISS.save_local(db, "db")
+
+    db.save_local("./db", index_name="csv")
