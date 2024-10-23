@@ -8,14 +8,20 @@ from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import CSVLoader  # @type: ignore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 
 # from langchain_community.chains import
 # from langchain import PromptTemplate
 # from langchain.chains import LLMChain
-
 llm = OllamaLLM(model="phi3.5")
 embedding_model = OllamaEmbeddings(model="phi3.5")
-
+db = FAISS.load_local(
+    folder_path="./db",
+    embeddings=embedding_model,
+    allow_dangerous_deserialization=True,
+    index_name="csv",
+)
+db .
 
 def generate_knowledge_from_csv():
     """Generate knowledge from a CSV file."""
@@ -39,7 +45,7 @@ if __name__ == "__main__":
         chunk_size=500, chunk_overlap=0, length_function=len
     )
     data = splitter.split_documents(generate_knowledge_from_csv())
-    db = FAISS.from_documents(data, embedding_model)
+    # db = FAISS.from_documents(data, embedding_model)
     print("finish")
 
-    db.save_local("./db", index_name="csv")
+    # db.save_local("./db", index_name="csv")
