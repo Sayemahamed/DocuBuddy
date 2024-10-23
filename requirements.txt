@@ -5,3 +5,4 @@ langchain
 streamlit_chat
 langchain-community
 fastembed
+sentence-transformers
