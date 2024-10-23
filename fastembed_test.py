@@ -2,30 +2,21 @@
 
 import os
 
-import fastembed
-from langchain_ollama.llms import OllamaLLM
+# import fastembed
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.document_loaders import CSVLoader  # @type: ignore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+from regex import P
 
 # embedding_model = fastembed.Embed(model_name="all-mpnet-base-v2")
 # from langchain_community.chains import
 # from langchain import PromptTemplate
 # from langchain.chains import LLMChain
-import pandas as pd
+# for model in fastembed.TextEmbedding().list_supported_models():
+#     print(model["model"])
 
-df = pd.read_csv("./directory/customer_journey_report.csv")
-df.sort_values("Number of Published Sessions", ascending=False, inplace=True)
-df
-
-for model in fastembed.TextEmbedding().list_supported_models():
-    print(model["model"])
-
-llm = OllamaLLM(model="phi3.5")
 embeddings = FastEmbedEmbeddings()
-model = SentenceTransformer("all-mpnet-base-v2")
 
 
 def generate_knowledge_from_csv():
@@ -39,7 +30,11 @@ def generate_knowledge_from_csv():
                 encoding="utf-8",
                 csv_args={"delimiter": ","},
             )
+            for dat in loader.load():
+                print(dat)
             total_data.extend(loader.load())
+
+    print(total_data)
     return total_data
 
 
@@ -47,10 +42,13 @@ if __name__ == "__main__":
     # Generate knowledge from a CSV file
     print("start")
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=0, length_function=len
+        chunk_size=2000, chunk_overlap=0, length_function=len
     )
     data = splitter.split_documents(generate_knowledge_from_csv())
-    embeddings.model_name = "all-mpnet-base-v2"
+    data.__len__()
+
     db = FAISS.from_documents(data, embeddings)
-    db.similarity_search("which school has Number of Published Sessions")
+    db.similarity_search(
+        "which school highest Trailing 2 Weeks Teacher Weighted School Engagement Score"
+    )
     db.save_local("./db", index_name="csv")
