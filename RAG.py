@@ -1,18 +1,21 @@
 """This is the Retrieval-Augmented Generator class."""
 
+import chunk
 import json
 import os
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pandas as pd
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
+from langchain_community.document_loaders.text import TextLoader
 
 
 class RAG:
     """This is the Retrieval-Augmented Generator class."""
 
-    def __init__(self, vector_store: FAISS) -> None:
+    def __init__(self) -> None:
         """Initialize the RAG class."""
         self.embedding_model = FastEmbedEmbeddings(
             # To utilize full CPU power
@@ -66,8 +69,17 @@ class RAG:
 
 
 # Utilities Functions
-def handle_txt(file_path):
-    print(f"Handling TXT file: {file_path}")
+def handle_txt(path: str) -> list[Document]:
+    """Returns ths data from the txt file in a list of Documents
+    Args:
+        path (str): path to the txt file
+
+    Returns:
+        list[Document]: list of Documents of the txt file
+    """
+    return TextLoader(file_path=path, autodetect_encoding=True).load_and_split(
+        text_splitter=RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=300)
+    )
 
 
 def handle_csv(path: str) -> list[Document]:
