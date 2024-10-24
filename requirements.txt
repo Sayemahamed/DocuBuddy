@@ -1,5 +1,8 @@
 streamlit
 streamlit_chat
+langchain
+langchain-community
 langchain-ollama
 fastembed
 faiss-cpu
+ipykernel
