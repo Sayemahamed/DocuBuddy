@@ -6,4 +6,6 @@ langchain-ollama
 fastembed
 faiss-cpu
 ipykernel
-jq
+pymupdf
+pandas
+NumPy

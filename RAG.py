@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pandas as pd
@@ -76,11 +77,18 @@ def handle_txt(path: str) -> list[Document]:
     Returns:
         list[Document]: list of Documents of the txt file
     """
-    data = TextLoader(file_path=path, encoding="utf-8").load_and_split(
-        text_splitter=RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=300)
-    )
-    print(data)
-    return data
+    cleaned_documents: list[Document] = []
+    for document_data_frame in TextLoader(file_path=path, encoding="utf-8").load():
+        if document_data_frame.page_content != "":
+            document_data_frame.page_content = clean_string(
+                document_data_frame.page_content
+            )
+            cleaned_documents.append(document_data_frame)
+    print(cleaned_documents)
+    return RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=100,
+    ).split_documents(cleaned_documents)
 
 
 def handle_csv(path: str) -> list[Document]:
@@ -124,12 +132,23 @@ def handle_pdf(file_path):
     print(f"Handling PDF file: {file_path}")
 
 
+def clean_string(text: str) -> str:
+    """
+    Cleans the string by removing extra spaces
+    Args:
+        text (str): the string to be cleaned
+    Returns:
+        str: the cleaned string
+    """
+    return re.sub("\\s+", " ", text).strip()
+
+
 # Testing Area
 rag = RAG()
 rag.generate_new_knowledge_base()
 
 rag.vector_store.similarity_search_with_relevance_scores(
-    "Which School has highest Trailing 2 Weeks Teacher Weighted School Engagement Score",
+    "Fastest computing device",
     k=10,
     fetch_k=100,
 )
