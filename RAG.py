@@ -9,6 +9,62 @@ from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 
 
+class RAG:
+    """This is the Retrieval-Augmented Generator class."""
+
+    def __init__(self, vector_store: FAISS) -> None:
+        """Initialize the RAG class."""
+        self.embedding_model = FastEmbedEmbeddings(
+            # To utilize full CPU power
+            threads=os.cpu_count(),
+            # Used base mode large model was too heavy and Small model was not getting the job done
+            model_name="BAAI/bge-base-en-v1.5",
+        )
+        self.vector_store = FAISS.from_documents(
+            documents=[
+                Document(
+                    page_content="placeholder data",
+                    metadata={"data_type": "placeholder data"},
+                )
+            ],
+            embedding=self.embedding_model,
+        )
+
+        self.file_handlers = {
+            "txt": handle_txt,
+            "csv": handle_csv,
+            "pdf": handle_pdf,
+        }
+
+    def generate_new_knowledge_base(self) -> None:
+        """generates a new knowledge base from the files in the directory"""
+        self.vector_store: FAISS = FAISS.from_documents(
+            documents=self.get_data_from_all_files(),
+            embedding=self.embedding_model,
+        )
+
+    def add_to_knowledge_base(self, path: str) -> None:
+        """adds data to the knowledge base
+        Args:
+            path (str): the path to the file
+        """
+        self.vector_store.add_documents(self.file_handlers[path.split(".")[-1]](path))
+
+    def get_data_from_all_files(self) -> list[Document]:
+        """
+        Gets data from all files in the directory
+        Returns:
+            list[Document]: list of documents
+        """
+        data_storage: list[Document] = []
+        for file in os.listdir(path="./directory"):
+            if os.path.isfile(os.path.join("./directory", file)):
+                data_storage += self.file_handlers[file.split(".")[-1]](
+                    os.path.join("./directory", file)
+                )
+        return data_storage
+
+
 # Utilities Functions
 def handle_txt(file_path):
     print(f"Handling TXT file: {file_path}")
@@ -55,63 +111,7 @@ def handle_pdf(file_path):
     print(f"Handling PDF file: {file_path}")
 
 
-# db: FAISS = FAISS.from_embeddings(embeddings=embedding_model.embed_documents(),)
-class RAG:
-    """This is the Retrieval-Augmented Generator class."""
-
-    def __init__(self, vector_store: FAISS) -> None:
-        """Initialize the RAG class."""
-        self.embedding_model = FastEmbedEmbeddings(
-            # To utilize full CPU power
-            threads=os.cpu_count(),
-            # Used base mode large model was too heavy and Small model was not getting the job done
-            model_name="BAAI/bge-base-en-v1.5",
-        )
-        self.vector_store = FAISS.from_documents(
-            documents=[
-                Document(
-                    page_content="placeholder data",
-                    metadata={"data_type": "placeholder data"},
-                )
-            ],
-            embedding=self.embedding_model,
-        )
-
-        self.file_handlers = {
-            "txt": handle_txt,
-            "csv": handle_csv,
-            "pdf": handle_pdf,
-        }
-
-    def generate_new_knowledge_base(self) -> None:
-        """generates a new knowledge base from the files in the directory"""
-        self.vector_store: FAISS = FAISS.from_documents(
-            documents=self.get_data_from_all_files(),
-            embedding=embedding_model,
-        )
-
-    def add_to_knowledge_base(self, path: str) -> None:
-        """adds data to the knowledge base
-        Args:
-            path (str): the path to the file
-        """
-        self.vector_store.add_documents(self.file_handlers[path.split(".")[-1]](path))
-
-    def get_data_from_all_files(self) -> list[Document]:
-        """
-        Gets data from all files in the directory
-        Returns:
-            list[Document]: list of documents
-        """
-        data_storage: list[Document] = []
-        for file in os.listdir(path="./directory"):
-            if os.path.isfile(os.path.join("./directory", file)):
-                data_storage += self.file_handlers[file.split(".")[-1]](
-                    os.path.join("./directory", file)
-                )
-        return data_storage
-
-
+# Testing Area
 rag = RAG()
 rag.generate_new_knowledge_base()
 
