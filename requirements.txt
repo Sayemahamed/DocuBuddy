@@ -6,3 +6,4 @@ langchain-ollama
 fastembed
 faiss-cpu
 ipykernel
+jq

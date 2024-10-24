@@ -1,14 +1,19 @@
-"""This module contains the RAG class."""
+"""This is the Retrieval-Augmented Generator class."""
 
-import os
-from langchain_text_splitters import RecursiveJsonSplitter
-import pandas as pd
 import json
+import os
+
+import pandas as pd
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 
-embedding_model = FastEmbedEmbeddings(threads=os.cpu_count())
+embedding_model = FastEmbedEmbeddings(
+    # To utilize full CPU power
+    threads=os.cpu_count(),
+    # Used base mode large model was too heavy and Small model was not getting the job done 
+      model_name="BAAI/bge-base-en-v1.5"
+)
 temp: list[Document] = [
     Document(
         page_content="placeholder data", metadata={"data_type": "placeholder data"}
@@ -22,27 +27,41 @@ def handle_txt(file_path):
     print(f"Handling TXT file: {file_path}")
 
 
-def handle_csv(
-    path: str, encoding: str = "utf-8", csv_args: dict = {"delimiter": ","}
-) -> list[Document]:
+def handle_csv(path: str) -> list[Document]:
     """Returns ths data from the CSV file in a list of Documents
 
     Args:
-        path (str): _description_
-        encoding (str, optional): _description_. Defaults to "utf-8".
-        csv_args (_type_, optional): _description_. Defaults to {"delimiter": ","}.
-
+        path (str): path to the csv file
     Returns:
-        list[Document]: _description_
+        list[Document]: list of Documents of the csv file
     """
+    data: list[Document] = []
     df: pd.DataFrame = pd.read_csv(filepath_or_buffer=path)
-
-    json_data: str = df.to_json(orient="records")
-    spliter = RecursiveJsonSplitter()
-
-    data = spliter.create_documents(json.loads(json_data))
-    data
-
+    file_name: str = os.path.basename(path)
+    json_data = json.loads(df.to_json(orient="records"))
+    for item in json_data:
+        temp_data_holding: str = "{"
+        for key, value in item.items():
+            if (
+                value is None
+                or value == ""
+                or value == " "
+                or value == "null"
+                or value == "NULL"
+                or value == "None"
+                or value == "none"
+                or value == 0
+                or value == "0"
+            ):
+                continue
+            elif isinstance(value, str):
+                temp_data_holding += f'"{key}": "{value}",'
+            else:
+                temp_data_holding += f'"{key}": {value},'
+        temp_data_holding += "}"
+        data.append(
+            Document(page_content=temp_data_holding, metadata={"File Name": file_name})
+        )
     return data
 
 
@@ -91,7 +110,8 @@ class RAG:
 rag = RAG()
 rag.generate_new_knowledge_base()
 
-rag.vector_store.similarity_search(
-    "which has highest Trailing 2 Weeks Teacher Weighted School Engagement Score: 0.42",
+rag.vector_store.similarity_search_with_relevance_scores(
+    "Which School has highest Trailing 2 Weeks Teacher Weighted School Engagement Score",
     k=10,
+    fetch_k=100,
 )
