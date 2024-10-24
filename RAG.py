@@ -65,6 +65,13 @@ class RAG:
             embedding=embedding_model,
         )
 
+    def add_to_knowledge_base(self, path: str) -> None:
+        """adds data to the knowledge base
+        Args:
+            path (str): the path to the file
+        """
+        self.vector_store.add_documents(self.file_handlers[path.split(".")[-1]](path))
+
     def get_data_from_all_files(self) -> list[Document]:
         """Get data from all files."""
         data_storage: list[Document] = []
