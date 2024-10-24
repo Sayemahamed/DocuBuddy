@@ -8,19 +8,6 @@ from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 
-embedding_model = FastEmbedEmbeddings(
-    # To utilize full CPU power
-    threads=os.cpu_count(),
-    # Used base mode large model was too heavy and Small model was not getting the job done 
-      model_name="BAAI/bge-base-en-v1.5"
-)
-temp: list[Document] = [
-    Document(
-        page_content="placeholder data", metadata={"data_type": "placeholder data"}
-    )
-]
-db: FAISS = FAISS.from_documents(temp, embedding_model)
-
 
 # Utilities Functions
 def handle_txt(file_path):
@@ -29,7 +16,6 @@ def handle_txt(file_path):
 
 def handle_csv(path: str) -> list[Document]:
     """Returns ths data from the CSV file in a list of Documents
-
     Args:
         path (str): path to the csv file
     Returns:
@@ -73,9 +59,24 @@ def handle_pdf(file_path):
 class RAG:
     """This is the Retrieval-Augmented Generator class."""
 
-    def __init__(self, vector_store: FAISS = db) -> None:
+    def __init__(self, vector_store: FAISS) -> None:
         """Initialize the RAG class."""
-        self.vector_store = vector_store
+        self.embedding_model = FastEmbedEmbeddings(
+            # To utilize full CPU power
+            threads=os.cpu_count(),
+            # Used base mode large model was too heavy and Small model was not getting the job done
+            model_name="BAAI/bge-base-en-v1.5",
+        )
+        self.vector_store = FAISS.from_documents(
+            documents=[
+                Document(
+                    page_content="placeholder data",
+                    metadata={"data_type": "placeholder data"},
+                )
+            ],
+            embedding=self.embedding_model,
+        )
+
         self.file_handlers = {
             "txt": handle_txt,
             "csv": handle_csv,
@@ -83,7 +84,7 @@ class RAG:
         }
 
     def generate_new_knowledge_base(self) -> None:
-        """Generate a new knowledge base."""
+        """generates a new knowledge base from the files in the directory"""
         self.vector_store: FAISS = FAISS.from_documents(
             documents=self.get_data_from_all_files(),
             embedding=embedding_model,
@@ -97,7 +98,11 @@ class RAG:
         self.vector_store.add_documents(self.file_handlers[path.split(".")[-1]](path))
 
     def get_data_from_all_files(self) -> list[Document]:
-        """Get data from all files."""
+        """
+        Gets data from all files in the directory
+        Returns:
+            list[Document]: list of documents
+        """
         data_storage: list[Document] = []
         for file in os.listdir(path="./directory"):
             if os.path.isfile(os.path.join("./directory", file)):
