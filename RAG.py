@@ -11,6 +11,7 @@ from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_ollama.llms import OllamaLLM
 
 
 class RAG:
@@ -24,6 +25,7 @@ class RAG:
             # Used base mode large model was too heavy and Small model was not getting the job done
             model_name="BAAI/bge-base-en-v1.5",
         )
+        self.llm = OllamaLLM(model="phi3.5", temperature=0.7)
         self.vector_store = FAISS.from_documents(
             documents=[
                 Document(
@@ -51,7 +53,9 @@ class RAG:
         Args:
             path (str): the path to the file
         """
-        self.vector_store.add_documents(self.file_handlers[path.split(".")[-1]](path))
+        self.vector_store.add_documents(
+            documents=self.file_handlers[path.split(".")[-1]](path)
+        )
 
     def get_data_from_all_files(self) -> list[Document]:
         """
@@ -67,7 +71,7 @@ class RAG:
                 )
         return data_storage
 
-    def vector_search(self, query: str, context_limit: int = 6000) -> list[Document]:
+    def vector_search(self, query: str, context_limit: int = 6000) -> list[str]:
         """
         Searches the vector store for the query
         Args:
@@ -76,21 +80,82 @@ class RAG:
         Returns:
             list[Document]: the list of documents
         """
-        relevant_documents: list[Document] = []
+        relevant_documents: list[str] = []
         length_count: int = len(query)
         for (
             current_document
         ) in self.vector_store.similarity_search_with_relevance_scores(
             query=query, k=50
         ):
-            length_count += len(current_document[0].__str__())
-            if length_count >= context_limit or current_document[1] <= 0.3:
+            length_count += current_document[0].__str__().__len__()
+            if length_count >= context_limit or current_document[1] <= 0.27:
                 break
-            relevant_documents.append(current_document[0])
+            relevant_documents.append(
+                f"({current_document[0].page_content})=>{current_document[0].metadata}"
+            )
         return relevant_documents
+
     def save_knowledge_base(self, name: str) -> None:
-        path = os.path.join("./knowledge_bases", name)
-        self.vector_store.save_local(folder_path=name)
+        """
+        Saves the knowledge base
+        Args:
+            name (str): name the current knowledge base
+        """
+        path: str = os.path.join("./knowledge_bases", name)
+        self.vector_store.save_local(folder_path=path)
+
+    def load_knowledge_base(self, name: str) -> None:
+        """
+        Loads Saved knowledge base
+        Args:
+            name (str): name of the knowledge base to be loaded
+        """
+        path: str = os.path.join("./knowledge_bases", name)
+        self.vector_store = FAISS.load_local(
+            folder_path=path,
+            embeddings=self.embedding_model,
+            allow_dangerous_deserialization=True,
+        )
+
+    def ask(self, query: str) -> str:
+        """
+        Asks a question
+        Args:
+            query (str): the user query
+        Returns:
+            str: the answer
+        """
+        context: list[str] = self.vector_search(query=query)
+        PromptTemplate = """
+        You are a helpful and concise assistant. Your task is to answer questions based on the provided document excerpts.
+        
+        - Keep your responses short and to the point.
+        - If the information needed to answer the question is not in the document, say "I don't know based on the provided document. Could you provide more context?"
+        - If you’re unsure about the answer, say "I'm not fully certain, but this is what I found:..."
+        - If no question is provided, say "No question was asked" and summarize the document briefly.
+        - If the question is vague or unclear, ask for clarification instead of guessing.
+        - If the document is long or incomplete, say "The answer is based on available excerpts. The full document may contain more information."
+        - Cite specific parts of the document when possible, e.g., "According to section X..."
+        - Handle multiple questions by either answering them individually or asking for focus.
+
+        Example:
+        Document: "The sun rises in the east and sets in the west."
+        Question: "Where does the sun rise?"
+        Response: "The sun rises in the east."
+
+        Document:
+        {context}
+
+        Question:
+        {query}
+        """
+        formatted_prompt = PromptTemplate.format(
+            context="\n\n".join(context)
+            if context
+            else "No document content provided.",
+            query=query if query else "No query provided.",
+        )
+        return self.llm.invoke(input=formatted_prompt)
 
 
 # Utilities Functions
@@ -179,7 +244,7 @@ def handle_pdf(path: str) -> list[Document]:
     return RecursiveCharacterTextSplitter(
         chunk_size=600,
         chunk_overlap=100,
-    ).split_documents(cleaned_documents)
+    ).split_documents(documents=cleaned_documents)
 
 
 def clean_string(text: str) -> str:
@@ -190,15 +255,13 @@ def clean_string(text: str) -> str:
     Returns:
         str: the cleaned string
     """
-    return re.sub("\\s+", " ", text).strip()
+    return re.sub(pattern="\\s+", repl=" ", string=text).strip()
 
 
 # Testing Area
 rag = RAG()
-rag.generate_new_knowledge_base()
-test: list[Document] = rag.vector_search(query="fastest computing device")
-count: int = 0
-for document in test:
-    count += len(document.__str__())
-    print(document.metadata)
-count
+# rag.generate_new_knowledge_base()
+# test: list[Document] = rag.vector_search(query="fastest computing device")
+# rag.save_knowledge_base(name="test1")
+rag.load_knowledge_base(name="test1")
+rag.ask(query="what is the fastest computing device")
