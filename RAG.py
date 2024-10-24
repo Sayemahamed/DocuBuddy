@@ -4,12 +4,13 @@ import json
 import os
 import re
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pandas as pd
+from langchain_community.document_loaders.text import TextLoader
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
-from langchain_community.document_loaders.text import TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders.pdf import PyMuPDFLoader
 
 
 class RAG:
@@ -81,10 +82,9 @@ def handle_txt(path: str) -> list[Document]:
     for document_data_frame in TextLoader(file_path=path, encoding="utf-8").load():
         if document_data_frame.page_content != "":
             document_data_frame.page_content = clean_string(
-                document_data_frame.page_content
+                text=document_data_frame.page_content
             )
             cleaned_documents.append(document_data_frame)
-    print(cleaned_documents)
     return RecursiveCharacterTextSplitter(
         chunk_size=600,
         chunk_overlap=100,
@@ -128,8 +128,30 @@ def handle_csv(path: str) -> list[Document]:
     return data
 
 
-def handle_pdf(file_path):
-    print(f"Handling PDF file: {file_path}")
+def handle_pdf(path: str) -> list[Document]:
+    """
+    Returns ths data from the PDF file in a list of Documents
+
+    Args:
+        path (str): path to the PDF file
+
+    Returns:
+        list[Document]: list of Documents of the PDF file
+    """
+    cleaned_documents: list[Document] = []
+    for document_data_frame in PyMuPDFLoader(
+        file_path=path, extract_images=False
+    ).load():
+        if document_data_frame.page_content != "":
+            document_data_frame.page_content = clean_string(
+                text=document_data_frame.page_content
+            )
+            cleaned_documents.append(document_data_frame)
+    print(cleaned_documents)
+    return RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=100,
+    ).split_documents(cleaned_documents)
 
 
 def clean_string(text: str) -> str:
@@ -147,8 +169,8 @@ def clean_string(text: str) -> str:
 rag = RAG()
 rag.generate_new_knowledge_base()
 
-rag.vector_store.similarity_search_with_relevance_scores(
-    "Fastest computing device",
-    k=10,
-    fetch_k=100,
-)
+# rag.vector_store.similarity_search_with_relevance_scores(
+#     "Fastest computing device",
+#     k=10,
+#     fetch_k=100,
+# )
