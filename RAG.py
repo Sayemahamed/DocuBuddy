@@ -1,10 +1,12 @@
 """This module contains the RAG class."""
 
 import os
+from langchain_text_splitters import RecursiveJsonSplitter
+import pandas as pd
+import json
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
-from langchain_community.document_loaders.csv_loader import CSVLoader
 
 embedding_model = FastEmbedEmbeddings(threads=os.cpu_count())
 temp: list[Document] = [
@@ -33,12 +35,15 @@ def handle_csv(
     Returns:
         list[Document]: _description_
     """
-    loader = CSVLoader(
-        file_path=path,
-        encoding=encoding,
-        csv_args=csv_args,
-    )
-    return loader.load()
+    df: pd.DataFrame = pd.read_csv(filepath_or_buffer=path)
+
+    json_data: str = df.to_json(orient="records")
+    spliter = RecursiveJsonSplitter()
+
+    data = spliter.create_documents(json.loads(json_data))
+    data
+
+    return data
 
 
 def handle_pdf(file_path):
@@ -53,9 +58,9 @@ class RAG:
         """Initialize the RAG class."""
         self.vector_store = vector_store
         self.file_handlers = {
-            ".txt": handle_txt,
-            ".csv": handle_csv,
-            ".pdf": handle_pdf,
+            "txt": handle_txt,
+            "csv": handle_csv,
+            "pdf": handle_pdf,
         }
 
     def generate_new_knowledge_base(self) -> None:
@@ -77,9 +82,16 @@ class RAG:
         data_storage: list[Document] = []
         for file in os.listdir(path="./directory"):
             if os.path.isfile(os.path.join("./directory", file)):
-                data_storage.append(
-                    self.file_handlers[file.split(".")[-1]](
-                        os.path.join("./directory", file)
-                    )
+                data_storage += self.file_handlers[file.split(".")[-1]](
+                    os.path.join("./directory", file)
                 )
         return data_storage
+
+
+rag = RAG()
+rag.generate_new_knowledge_base()
+
+rag.vector_store.similarity_search(
+    "which has highest Trailing 2 Weeks Teacher Weighted School Engagement Score: 0.42",
+    k=10,
+)
