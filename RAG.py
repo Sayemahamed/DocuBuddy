@@ -5,12 +5,12 @@ import os
 import re
 
 import pandas as pd
+from langchain_community.document_loaders.pdf import PyMuPDFLoader
 from langchain_community.document_loaders.text import TextLoader
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents.base import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders.pdf import PyMuPDFLoader
 
 
 class RAG:
@@ -33,7 +33,6 @@ class RAG:
             ],
             embedding=self.embedding_model,
         )
-
         self.file_handlers = {
             "txt": handle_txt,
             "csv": handle_csv,
@@ -68,13 +67,32 @@ class RAG:
                 )
         return data_storage
 
+    def vector_search(self, query: str, context_limit: int = 4000) -> list[Document]:
+        """
+        Searches the vector store for the query
+        Args:
+            query (str): the user query
+            data_limit (int, optional): the number of data to be returned. Defaults to 4000.
+        Returns:
+            list[Document]: the list of documents
+        """
+        relevant_documents: list[Document] = []
+        length_count: int = len(query)
+        for document in self.vector_store.similarity_search_with_relevance_scores(
+            query, k=50
+        ):
+            if length_count >= context_limit and document[1] >= 0.4:
+                break
+            relevant_documents.append(document[0])
+            length_count += len(document[0].page_content)
+        return relevant_documents
+
 
 # Utilities Functions
 def handle_txt(path: str) -> list[Document]:
     """Returns ths data from the txt file in a list of Documents
     Args:
         path (str): path to the txt file
-
     Returns:
         list[Document]: list of Documents of the txt file
     """
@@ -131,10 +149,8 @@ def handle_csv(path: str) -> list[Document]:
 def handle_pdf(path: str) -> list[Document]:
     """
     Returns ths data from the PDF file in a list of Documents
-
     Args:
         path (str): path to the PDF file
-
     Returns:
         list[Document]: list of Documents of the PDF file
     """
@@ -147,7 +163,6 @@ def handle_pdf(path: str) -> list[Document]:
                 text=document_data_frame.page_content
             )
             cleaned_documents.append(document_data_frame)
-    print(cleaned_documents)
     return RecursiveCharacterTextSplitter(
         chunk_size=600,
         chunk_overlap=100,
@@ -168,9 +183,5 @@ def clean_string(text: str) -> str:
 # Testing Area
 rag = RAG()
 rag.generate_new_knowledge_base()
-
-# rag.vector_store.similarity_search_with_relevance_scores(
-#     "Fastest computing device",
-#     k=10,
-#     fetch_k=100,
-# )
+test: list[Document] = rag.vector_search(query="low pass")
+print(test)
