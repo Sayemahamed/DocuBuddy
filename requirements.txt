@@ -1,8 +1,5 @@
-langchain-ollama
 streamlit
-faiss-cpu
-langchain
 streamlit_chat
-langchain-community
+langchain-ollama
 fastembed
-sentence-transformers
+faiss-cpu
