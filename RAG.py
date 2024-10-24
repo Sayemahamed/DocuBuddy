@@ -1,6 +1,5 @@
 """This is the Retrieval-Augmented Generator class."""
 
-import chunk
 import json
 import os
 
@@ -77,9 +76,11 @@ def handle_txt(path: str) -> list[Document]:
     Returns:
         list[Document]: list of Documents of the txt file
     """
-    return TextLoader(file_path=path, autodetect_encoding=True).load_and_split(
+    data = TextLoader(file_path=path, encoding="utf-8").load_and_split(
         text_splitter=RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=300)
     )
+    print(data)
+    return data
 
 
 def handle_csv(path: str) -> list[Document]:
