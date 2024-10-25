@@ -1,37 +1,61 @@
 import streamlit as st
+import os
 
+# Folder containing knowledge bases
+KNOWLEDGE_BASES_FOLDER = "knowledge_bases"
 
+# Create the knowledge_bases folder if it doesn't exist
+if not os.path.exists(KNOWLEDGE_BASES_FOLDER):
+    os.makedirs(KNOWLEDGE_BASES_FOLDER)
 
-st.title("🔎 LangChain - Chat with search")
+# Title and description
+st.title("Knowledge Base Manager")
+st.write("View, load, and save knowledge bases within the `knowledge_bases` folder.")
 
-"""
-In this example, we're using `StreamlitCallbackHandler` to display the thoughts and actions of an agent in an interactive Streamlit app.
-Try more LangChain 🤝 Streamlit Agent examples at [github.com/langchain-ai/streamlit-agent](https://github.com/langchain-ai/streamlit-agent).
-"""
+# Input field for knowledge base name
+kb_name = st.text_input("Enter Knowledge Base Name")
 
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [
-        {"role": "assistant", "content": "Hi, I'm a chatbot who can search the web. How can I help you?"}
+# Buttons for loading and saving the knowledge base
+col1, col2 = st.columns([1, 1])
+with col1:
+    load_button = st.button("Load Knowledge Base")
+with col2:
+    save_button = st.button("Save Current Knowledge Base")
+
+# Handle Load Knowledge Base action
+if load_button:
+    knowledge_bases = [
+        d
+        for d in os.listdir(KNOWLEDGE_BASES_FOLDER)
+        if os.path.isdir(os.path.join(KNOWLEDGE_BASES_FOLDER, d))
     ]
+    if kb_name in knowledge_bases:
+        st.success(f"Knowledge base '{kb_name}' loaded successfully.")
+        # Add code here to load the knowledge base data as needed
+    else:
+        st.error(f"Knowledge base '{kb_name}' does not exist.")
 
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+# Handle Save Knowledge Base action
+if save_button:
+    kb_path = os.path.join(KNOWLEDGE_BASES_FOLDER, kb_name)
+    if not os.path.exists(kb_path):
+        os.makedirs(kb_path)
+        st.success(f"Knowledge base '{kb_name}' has been created and saved.")
+        # Add code here to save the current knowledge base data as needed
+    else:
+        st.warning(f"Knowledge base '{kb_name}' already exists. Saving current data.")
+        # Add code here to update the existing knowledge base data
 
-if prompt := st.chat_input(placeholder="Who won the Women's U.S. Open in 2018?"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
+# List all subdirectories in the knowledge_bases folder
+st.write("### Available Knowledge Bases:")
+knowledge_bases = [
+    d
+    for d in os.listdir(KNOWLEDGE_BASES_FOLDER)
+    if os.path.isdir(os.path.join(KNOWLEDGE_BASES_FOLDER, d))
+]
 
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
-
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=openai_api_key, streaming=True)
-    search = DuckDuckGoSearchRun(name="Search")
-    search_agent = initialize_agent(
-        [search], llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, handle_parsing_errors=True
-    )
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        response = search_agent.run(st.session_state.messages, callbacks=[st_cb])
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.write(response)
+if knowledge_bases:
+    for kb in knowledge_bases:
+        st.write(f"- {kb}")
+else:
+    st.write("No knowledge bases found in the `knowledge_bases` folder.")

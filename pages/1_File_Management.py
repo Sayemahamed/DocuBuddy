@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import time
 from datetime import datetime
-import fitz
+import fitz  # PyMuPDF for PDF reading
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # Folder to save uploaded files
@@ -43,10 +43,14 @@ if uploaded_file:
         time.sleep(2)
         st.rerun()  # Rerun the app to show updated file list
 
+# Variable to store content of the file to be displayed on top
+file_content_to_display = None
+file_name_to_display = None
+
 # Display all files in the uploads folder
-st.write("### Files in `uploads` Folder:")
 uploaded_files: list[str] = os.listdir(path=UPLOAD_FOLDER)
 
+# Check if there are any files in the folder
 if uploaded_files:
     for file_name in uploaded_files:
         file_path = os.path.join(UPLOAD_FOLDER, file_name)
@@ -55,42 +59,53 @@ if uploaded_files:
             "%Y-%m-%d %H:%M:%S"
         )
 
-        # Display file details
-        st.write(f"**{file_name}**")
-        st.write(f"Size: {file_size_kb} KB | Last Modified: {file_mtime}")
-
-        # View and Delete buttons
-        col1, col2 = st.columns([1, 1])
+        # Columns for buttons
+        col1, col2, col3 = st.columns([1, 1, 1])
 
         # View file button
         with col1:
             if st.button(f"View {file_name}", key=f"view_{file_name}"):
+                file_name_to_display = file_name
                 if file_name.endswith(".csv"):
                     df = pd.read_csv(file_path)
-                    st.write("File Content:")
-                    st.dataframe(data=df)
+                    file_content_to_display = df  # Store dataframe to display
                 elif file_name.endswith(".txt"):
                     with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-                    st.write("File Content:")
-                    st.text(content)
+                        file_content_to_display = f.read()  # Store text content
                 elif file_name.endswith(".pdf"):
                     with fitz.open(file_path) as pdf_document:
                         text = ""
                         for page_num in range(len(pdf_document)):
-                            text += pdf_document[page_num].get_text()
-                    st.write("File Content:")
-                    st.text_area("File Content", text)
-                # elif file_name.endswith((".png", ".jpg", ".jpeg")):
-                #     st.image(file_path, caption=f"Image - {file_name}")
-                else:
-                    st.write("File preview not supported for this file type.")
+                            page = pdf_document.load_page(
+                                page_num
+                            )  # Load each page properly
+                            text += page.get_text()
+                    file_content_to_display = text  # Store PDF text content
+
+        # Add to Knowledge Base button
+        with col2:
+            if st.button(
+                f"Add to Knowledge Base {file_name}", key=f"add_kb_{file_name}"
+            ):
+                st.success(f"File `{file_name}` has been added to the knowledge base.")
 
         # Delete file button
-        with col2:
+        with col3:
             if st.button(f"Delete {file_name}", key=f"delete_{file_name}"):
                 os.remove(file_path)
                 st.warning(f"File `{file_name}` has been deleted.")
                 st.rerun()  # Rerun the app to refresh the file list
+
+    # Display selected file content at the top
+    if file_content_to_display is not None:
+        st.write(f"### Content of `{file_name_to_display}`")
+        if isinstance(file_content_to_display, pd.DataFrame):
+            st.dataframe(file_content_to_display)  # Display as DataFrame
+        else:
+            st.text_area(
+                "File Content", file_content_to_display, height=300
+            )  # Display text content
+
+# Show message if no files found in the folder
 else:
     st.write("No files found in the `uploads` folder.")
