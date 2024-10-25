@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 import os
+import time
 from datetime import datetime
+import fitz
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # Folder to save uploaded files
 UPLOAD_FOLDER = "uploads"
@@ -15,8 +18,8 @@ st.title("File Submission and Management")
 st.write("Upload files and manage them in the `uploads` folder.")
 
 # File uploader widget
-uploaded_file = st.file_uploader(
-    "Choose a file", type=["csv", "txt", "pdf", "png", "jpg"]
+uploaded_file: UploadedFile | None = st.file_uploader(
+    "Choose a file", type=["csv", "txt", "pdf"]
 )
 
 if uploaded_file:
@@ -24,7 +27,7 @@ if uploaded_file:
     file_details = {
         "Filename": uploaded_file.name,
         "File Type": uploaded_file.type,
-        "File Size (KB)": round(uploaded_file.size / 1024, 2),
+        "File Size (KB)": round(number=uploaded_file.size / 1024, ndigits=2),
     }
     st.write("File Details (Pending Save):", file_details)
 
@@ -37,11 +40,12 @@ if uploaded_file:
         st.success(
             f"File `{uploaded_file.name}` has been saved to the `{UPLOAD_FOLDER}` folder."
         )
+        time.sleep(2)
         st.rerun()  # Rerun the app to show updated file list
 
 # Display all files in the uploads folder
 st.write("### Files in `uploads` Folder:")
-uploaded_files = os.listdir(UPLOAD_FOLDER)
+uploaded_files: list[str] = os.listdir(path=UPLOAD_FOLDER)
 
 if uploaded_files:
     for file_name in uploaded_files:
@@ -64,14 +68,21 @@ if uploaded_files:
                 if file_name.endswith(".csv"):
                     df = pd.read_csv(file_path)
                     st.write("File Content:")
-                    st.dataframe(df)
+                    st.dataframe(data=df, use_container_width=True)
                 elif file_name.endswith(".txt"):
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     st.write("File Content:")
                     st.text(content)
-                elif file_name.endswith((".png", ".jpg", ".jpeg")):
-                    st.image(file_path, caption=f"Image - {file_name}")
+                elif file_name.endswith(".pdf"):
+                    with fitz.open(file_path) as pdf_document:
+                        text = ""
+                        for page_num in range(len(pdf_document)):
+                            text += pdf_document[page_num].get_text()
+                    st.write("File Content:")
+                    st.text_area("File Content", text, height=500)
+                # elif file_name.endswith((".png", ".jpg", ".jpeg")):
+                #     st.image(file_path, caption=f"Image - {file_name}")
                 else:
                     st.write("File preview not supported for this file type.")
 
