@@ -3,8 +3,6 @@ import streamlit as st
 
 
 def main():
-    with st.sidebar:
-        st.title("hello")
     # Main section for responses and document processing feedback
     st.title(body="📄 DocuBuddy")
     st.caption(
