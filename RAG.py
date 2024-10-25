@@ -42,7 +42,7 @@ class RAG:
         }
 
     def generate_new_knowledge_base(self) -> None:
-        """generates a new knowledge base from the files in the directory"""
+        """generates a new knowledge base from the files in the uploads"""
         self.vector_store: FAISS = FAISS.from_documents(
             documents=self.get_data_from_all_files(),
             embedding=self.embedding_model,
@@ -59,15 +59,15 @@ class RAG:
 
     def get_data_from_all_files(self) -> list[Document]:
         """
-        Gets data from all files in the directory
+        Gets data from all files in the uploads
         Returns:
             list[Document]: list of documents
         """
         data_storage: list[Document] = []
-        for file in os.listdir(path="./directory"):
-            if os.path.isfile(os.path.join("./directory", file)):
+        for file in os.listdir(path="./uploads"):
+            if os.path.isfile(os.path.join("./uploads", file)):
                 data_storage += self.file_handlers[file.split(".")[-1]](
-                    os.path.join("./directory", file)
+                    os.path.join("./uploads", file)
                 )
         return data_storage
 
@@ -87,7 +87,7 @@ class RAG:
         ) in self.vector_store.similarity_search_with_relevance_scores(
             query=query, k=50
         ):
-            length_count += current_document[0].__str__().__len__()
+            length_count += len(str(object=current_document[0]))
             if length_count >= context_limit or current_document[1] <= 0.3:
                 break
             relevant_documents.append(
@@ -125,16 +125,16 @@ class RAG:
         Returns:
             str: the answer
         """
-        context: list[str] = self.vector_search(query=query, context_limit=2500)
+        context: list[str] = self.vector_search(query=query, context_limit=3000)
         PromptTemplate = """
-        You are a concise and factual assistant. Provide short, accurate responses to questions based on the provided document excerpts.
+You are a concise and factual assistant. Provide short, accurate single response to questions based on the document excerpts, keeping responses under 400 characters.
 
-        - For factual questions, answer directly from the document with brevity, clarity, and relevance. Start with "Based on the available excerpts..."
-        - For logic-based questions (e.g., math, reasoning), respond from your internal knowledge base, keeping answers under 500 characters.
-        - If the information is incomplete or you're unsure, say "I'm not fully certain based on the document. Could you provide more context or additional documents?"
-        - For vague or unclear questions, ask for clarification in one line rather than speculating or guessing.
-        - If no question is asked, say "No question was asked" and provide a brief summary of the document.
-        - Whenever possible, cite specific parts of the document for clarity.
+- For factual questions, answer directly from the document with brevity, clarity, and relevance. Start with "Based on the available excerpts..."
+- For logic-based questions (e.g., math, reasoning), respond from your internal knowledge base without relying on document excerpts if unnecessary.
+- If the information is incomplete or you're unsure, respond with "I'm not fully certain based on the document. Could you provide more context or additional documents?"
+- For vague or unclear questions, ask for clarification in one line rather than speculating or guessing.
+- If no question is asked, respond with "No question was asked" and provide a brief summary of the document.
+- Whenever possible, cite specific parts of the document for clarity.
 
         Document:
         {context}
@@ -254,7 +254,12 @@ def clean_string(text: str) -> str:
 
 # Testing Area
 rag = RAG()
-rag.generate_new_knowledge_base()
+# rag.generate_new_knowledge_base()
 # test: list[Document] = rag.vector_search(query="fastest computing device")
-# rag.save_knowledge_base(name="test1")
-print(rag.ask(query="how to write a paragraph"))
+# rag.load_knowledge_base(name="test")
+# print(
+#     rag.ask(
+#         query="You are given the headings of a data table in a CSV format. Which of the following headings are most important: District Name,District NCES,School,School Year,School NCES,Current Number of Users,Current Number of Admin Users,Current Number of Teacher Users,Date of 1st Feedback Session,Date of 1st Self Reflection,Date of 10th Feedback Session,Date of 30th Feedback Session,Date of 60th Feedback Session,Date of 100th Session (All Types),Last Published Session Date,Number of Published Sessions,Published Sessions per Teacher,Number of Draft Sessions,Number of Feedback Sessions,Number of Self Reflections,Number of Narrative Sessions,Number of Mastery Sessions,Number of Comments,Number of Active Goals,% of Published Feedback Sessions Viewed,Total School Engagement Score,Teacher Weighted School Engagement Score,Trailing 2 Weeks Teacher Weighted School Engagement Score"
+#     )
+# )
+# rag.save_knowledge_base("report")
