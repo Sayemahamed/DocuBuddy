@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+from RAG import Augmented_model
 
 
 def main():
@@ -22,10 +23,11 @@ def main():
         # if not openai_api_key:
         #     st.info("Please add your OpenAI API key to continue.")
         #     st.stop()
+        answer: str = Augmented_model.ask(query=prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
-        st.session_state.messages.append({"role": "assistant", "content": prompt})
-        st.chat_message("assistant").write(prompt)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.chat_message("assistant").write(answer)
 
 
 if __name__ == "__main__":

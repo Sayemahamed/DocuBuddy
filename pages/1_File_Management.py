@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import fitz  # PyMuPDF for PDF reading
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from RAG import Augmented_model
 
 # Folder to save uploaded files
 UPLOAD_FOLDER = "uploads"
@@ -87,6 +88,9 @@ if uploaded_files:
             if st.button(
                 f"Add to Knowledge Base {file_name}", key=f"add_kb_{file_name}"
             ):
+                Augmented_model.add_to_knowledge_base(
+                    path=os.path.join("uploads", file_name)
+                )
                 st.success(f"File `{file_name}` has been added to the knowledge base.")
 
         # Delete file button

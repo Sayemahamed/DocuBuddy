@@ -252,14 +252,4 @@ def clean_string(text: str) -> str:
     return re.sub(pattern="\\s+", repl=" ", string=text).strip()
 
 
-# Testing Area
-rag = RAG()
-# rag.generate_new_knowledge_base()
-# test: list[Document] = rag.vector_search(query="fastest computing device")
-# rag.load_knowledge_base(name="test")
-# print(
-#     rag.ask(
-#         query="You are given the headings of a data table in a CSV format. Which of the following headings are most important: District Name,District NCES,School,School Year,School NCES,Current Number of Users,Current Number of Admin Users,Current Number of Teacher Users,Date of 1st Feedback Session,Date of 1st Self Reflection,Date of 10th Feedback Session,Date of 30th Feedback Session,Date of 60th Feedback Session,Date of 100th Session (All Types),Last Published Session Date,Number of Published Sessions,Published Sessions per Teacher,Number of Draft Sessions,Number of Feedback Sessions,Number of Self Reflections,Number of Narrative Sessions,Number of Mastery Sessions,Number of Comments,Number of Active Goals,% of Published Feedback Sessions Viewed,Total School Engagement Score,Teacher Weighted School Engagement Score,Trailing 2 Weeks Teacher Weighted School Engagement Score"
-#     )
-# )
-# rag.save_knowledge_base("report")
+Augmented_model: RAG = RAG()

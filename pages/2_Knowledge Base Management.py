@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+from RAG import Augmented_model
 
 # Folder containing knowledge bases
 KNOWLEDGE_BASES_FOLDER = "knowledge_bases"
@@ -30,6 +31,7 @@ if load_button:
         if os.path.isdir(os.path.join(KNOWLEDGE_BASES_FOLDER, d))
     ]
     if kb_name in knowledge_bases:
+        Augmented_model.load_knowledge_base(name=kb_name)
         st.success(f"Knowledge base '{kb_name}' loaded successfully.")
         # Add code here to load the knowledge base data as needed
     else:
@@ -40,6 +42,7 @@ if save_button:
     kb_path = os.path.join(KNOWLEDGE_BASES_FOLDER, kb_name)
     if not os.path.exists(kb_path):
         os.makedirs(kb_path)
+        Augmented_model.save_knowledge_base(name=kb_name)
         st.success(f"Knowledge base '{kb_name}' has been created and saved.")
         # Add code here to save the current knowledge base data as needed
     else:
