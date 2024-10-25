@@ -29,17 +29,62 @@ def main() -> None:
             elif submit_button:
                 st.warning("⚠️ Please upload a file to proceed.")
 
-        # Knowledge Base Section
+            # Knowledge Base Section
         st.header("📚 Knowledge Base")
-        st.write("Manage and view the knowledge base content.")
+        st.write("Load custom text data into the knowledge base.")
 
+        # Text input for loading knowledge base
+        knowledge_text = st.text_area("Enter text to load into the knowledge base:")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Load Knowledge Base"):
+                if knowledge_text:
+                    # Save to knowledge base in session state
+                    if "knowledge_base" not in st.session_state:
+                        st.session_state["knowledge_base"] = []
+                    st.session_state["knowledge_base"].append(knowledge_text)
+                    st.success("Knowledge base loaded successfully.")
+                else:
+                    st.warning(
+                        "⚠️ Please enter some text to load into the knowledge base."
+                    )
+
+        with col2:
+            if st.button("Save Knowledge Base"):
+                if (
+                    "knowledge_base" in st.session_state
+                    and st.session_state["knowledge_base"]
+                ):
+                    # Save the knowledge base to a text file
+                    kb_directory = "./knowledge_base"
+                    os.makedirs(kb_directory, exist_ok=True)
+                    kb_file_path = os.path.join(kb_directory, "knowledge_base.txt")
+                    with open(kb_file_path, "w") as kb_file:
+                        for entry in st.session_state["knowledge_base"]:
+                            kb_file.write(entry + "\n---\n")
+                    st.success(f"Knowledge base saved successfully to {kb_file_path}")
+                else:
+                    st.warning(
+                        "⚠️ The knowledge base is empty. Please load some text first."
+                    )
+
+        # View Knowledge Base and display entries as buttons
         if st.button("View Knowledge Base"):
-            st.info("Displaying knowledge base content...")
-            # Placeholder for viewing knowledge base functionality
-
-        if st.button("Refresh Knowledge Base"):
-            st.info("Knowledge base has been refreshed.")
-            # Placeholder for refreshing knowledge base functionality
+            if (
+                "knowledge_base" in st.session_state
+                and st.session_state["knowledge_base"]
+            ):
+                st.write("### Knowledge Base Entries:")
+                for idx, entry in enumerate(
+                    st.session_state["knowledge_base"], start=1
+                ):
+                    if st.button(f"Entry {idx}"):
+                        st.info(entry)  # Display selected entry content
+            else:
+                st.warning(
+                    "⚠️ The knowledge base is empty. Please load some text first."
+                )
 
         # Additional links and resources
         "[View the source code](https://github.com/Sayemahamed/DocuBuddy)"
@@ -52,7 +97,9 @@ def main() -> None:
 
     # Display any saved document responses
     if "response_text" not in st.session_state:
-        st.session_state["response_text"] = "Hello, World!"
+        st.session_state["response_text"] = (
+            f"Hello, {os.getlogin()}! I hope you're having a great day! Got any tasty document data for me to feast on?"
+        )
 
     st.subheader("Answer:")
     st.text(textwrap.fill(st.session_state["response_text"], width=85))
