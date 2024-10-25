@@ -126,30 +126,28 @@ class RAG:
             str: the answer
         """
         context: list[str] = self.vector_search(query=query, context_limit=3000)
-        PromptTemplate = """
-You are a concise and factual assistant. Provide short, accurate single response to questions based on the document excerpts, keeping responses under 400 characters.
-
-- For factual questions, answer directly from the document with brevity, clarity, and relevance. Start with "Based on the available excerpts..."
-- For logic-based questions (e.g., math, reasoning), respond from your internal knowledge base without relying on document excerpts if unnecessary.
-- If the information is incomplete or you're unsure, respond with "I'm not fully certain based on the document. Could you provide more context or additional documents?"
-- For vague or unclear questions, ask for clarification in one line rather than speculating or guessing.
-- If no question is asked, respond with "No question was asked" and provide a brief summary of the document.
-- Whenever possible, cite specific parts of the document for clarity.
-
-        Document:
-        {context}
+        user_name: str = os.getlogin()
+        Prompt_Template = """
+        You are DocuBuddy, the AI assistant for {user_name}.
+        For question types such as "Factual Lookup," "Summaries," "Comparative Analysis," "Extractive Questions," "Guidance/Procedure," "Interpretation," and "Document Retrieval," **respond** directly from the provided document with precision and clarity. Documents will be supplied in the format (data)=>{metadata}.
+        For question types including "General Knowledge," "Creative/Hypothetical," "Opinion-Based," "Programming Help," "Translation/Grammar," "Math/Logic," and "Definitions," **refrain** from referencing document content unless absolutely necessary.
+        **Ensure** responses are brief and focused. If the information is incomplete or uncertain, **reply** with "I'm not fully certain..." and **request** additional context or documents. For ambiguous questions, **seek** clarification succinctly without making assumptions. Be funny and engaging in your responses.
 
         Question:
         {query}
+
+        Document:
+        {context}
         """
-        return self.llm.invoke(
-            input=PromptTemplate.format(
-                context="\n\n".join(context)
-                if context
-                else "No document content provided.",
-                query=query if query else "No query provided.",
-            )
+        Prompt_Template: str = Prompt_Template.format(
+            user_name=user_name,
+            metadata="{metadata}",
+            query=query if query else "No query provided.",
+            context="\n\n".join(context)
+            if context
+            else "No document content provided.",
         )
+        return self.llm.invoke(input=Prompt_Template)
 
 
 # Utilities Functions
@@ -253,3 +251,4 @@ def clean_string(text: str) -> str:
 
 
 Augmented_model: RAG = RAG()
+Augmented_model.ask(query="What is the meaning of life?")

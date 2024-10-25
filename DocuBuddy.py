@@ -1,9 +1,14 @@
+"""This is the main app for DocuBuddy."""
+
 import os
 import streamlit as st
 from RAG import Augmented_model
 
 
-def main():
+def main() -> None:
+    """
+    Main function or entry point for the DocuBuddy app.
+    """
     # Main section for responses and document processing feedback
     st.title(body="📄 DocuBuddy")
     st.caption(
@@ -18,16 +23,13 @@ def main():
             }
         ]
     for msg in st.session_state.messages:
-        st.chat_message(msg["role"]).write(msg["content"])
+        st.chat_message(name=msg["role"]).write(msg["content"])
     if prompt := st.chat_input():
-        # if not openai_api_key:
-        #     st.info("Please add your OpenAI API key to continue.")
-        #     st.stop()
         answer: str = Augmented_model.ask(query=prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user").write(prompt)
+        st.chat_message(name="user").write(prompt)
         st.session_state.messages.append({"role": "assistant", "content": answer})
-        st.chat_message("assistant").write(answer)
+        st.chat_message(name="assistant").write(answer)
 
 
 if __name__ == "__main__":
