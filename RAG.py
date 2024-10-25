@@ -88,7 +88,7 @@ class RAG:
             query=query, k=50
         ):
             length_count += current_document[0].__str__().__len__()
-            if length_count >= context_limit or current_document[1] <= 0.27:
+            if length_count >= context_limit or current_document[1] <= 0.3:
                 break
             relevant_documents.append(
                 f"({current_document[0].page_content})=>{current_document[0].metadata}"
@@ -125,23 +125,16 @@ class RAG:
         Returns:
             str: the answer
         """
-        context: list[str] = self.vector_search(query=query)
+        context: list[str] = self.vector_search(query=query, context_limit=2500)
         PromptTemplate = """
-        You are a helpful and concise assistant. Your task is to answer questions based on the provided document excerpts.
-        
-        - Keep your responses short and to the point.
-        - If the information needed to answer the question is not in the document, say "I don't know based on the provided document. Could you provide more context?"
-        - If you’re unsure about the answer, say "I'm not fully certain, but this is what I found:..."
-        - If no question is provided, say "No question was asked" and summarize the document briefly.
-        - If the question is vague or unclear, ask for clarification instead of guessing.
-        - If the document is long or incomplete, say "The answer is based on available excerpts. The full document may contain more information."
-        - Cite specific parts of the document when possible, e.g., "According to section X..."
-        - Handle multiple questions by either answering them individually or asking for focus.
+        You are a concise and factual assistant. Provide short, accurate responses to questions based on the provided document excerpts.
 
-        Example:
-        Document: "The sun rises in the east and sets in the west."
-        Question: "Where does the sun rise?"
-        Response: "The sun rises in the east."
+        - For factual questions, answer directly from the document with brevity, clarity, and relevance. Start with "Based on the available excerpts..."
+        - For logic-based questions (e.g., math, reasoning), respond from your internal knowledge base, keeping answers under 500 characters.
+        - If the information is incomplete or you're unsure, say "I'm not fully certain based on the document. Could you provide more context or additional documents?"
+        - For vague or unclear questions, ask for clarification in one line rather than speculating or guessing.
+        - If no question is asked, say "No question was asked" and provide a brief summary of the document.
+        - Whenever possible, cite specific parts of the document for clarity.
 
         Document:
         {context}
@@ -149,13 +142,14 @@ class RAG:
         Question:
         {query}
         """
-        formatted_prompt = PromptTemplate.format(
-            context="\n\n".join(context)
-            if context
-            else "No document content provided.",
-            query=query if query else "No query provided.",
+        return self.llm.invoke(
+            input=PromptTemplate.format(
+                context="\n\n".join(context)
+                if context
+                else "No document content provided.",
+                query=query if query else "No query provided.",
+            )
         )
-        return self.llm.invoke(input=formatted_prompt)
 
 
 # Utilities Functions
@@ -179,7 +173,7 @@ def handle_txt(path: str) -> list[Document]:
             cleaned_documents.append(document_data_frame)
     return RecursiveCharacterTextSplitter(
         chunk_size=600,
-        chunk_overlap=100,
+        chunk_overlap=50,
     ).split_documents(documents=cleaned_documents)
 
 
@@ -243,7 +237,7 @@ def handle_pdf(path: str) -> list[Document]:
             cleaned_documents.append(document_data_frame)
     return RecursiveCharacterTextSplitter(
         chunk_size=600,
-        chunk_overlap=100,
+        chunk_overlap=50,
     ).split_documents(documents=cleaned_documents)
 
 
@@ -260,8 +254,7 @@ def clean_string(text: str) -> str:
 
 # Testing Area
 rag = RAG()
-# rag.generate_new_knowledge_base()
+rag.generate_new_knowledge_base()
 # test: list[Document] = rag.vector_search(query="fastest computing device")
 # rag.save_knowledge_base(name="test1")
-rag.load_knowledge_base(name="test1")
-rag.ask(query="what is the fastest computing device")
+print(rag.ask(query="how to write a paragraph"))
