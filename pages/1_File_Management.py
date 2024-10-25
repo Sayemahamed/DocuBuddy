@@ -68,7 +68,7 @@ if uploaded_files:
                 if file_name.endswith(".csv"):
                     df = pd.read_csv(file_path)
                     st.write("File Content:")
-                    st.dataframe(data=df, use_container_width=True)
+                    st.dataframe(data=df)
                 elif file_name.endswith(".txt"):
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
@@ -80,7 +80,7 @@ if uploaded_files:
                         for page_num in range(len(pdf_document)):
                             text += pdf_document[page_num].get_text()
                     st.write("File Content:")
-                    st.text_area("File Content", text, height=500)
+                    st.text_area("File Content", text)
                 # elif file_name.endswith((".png", ".jpg", ".jpeg")):
                 #     st.image(file_path, caption=f"Image - {file_name}")
                 else:
