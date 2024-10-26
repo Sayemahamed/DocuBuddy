@@ -61,7 +61,11 @@ DocuBuddy streamlines information retrieval, so you can focus on what matters.
    ```bash
    streamlit run .\DocuBuddy.py
    ```
+## System Architecture
 
+...
+
+![System Architecture Diagram](./System Diagram.png)
 ## Usage Examples
 
 After uploading a document, try the following sample questions:
