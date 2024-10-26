@@ -37,6 +37,9 @@ DocuBuddy is perfect for:
 
 DocuBuddy combines these advanced tools to help you focus on what matters by handling information retrieval seamlessly and effectively.
 
+Here’s the updated **Getting Started** section with the correct command:
+
+```markdown
 ## Getting Started
 
 1. **Clone the Repository**: Clone this repository to your local machine using:
@@ -44,15 +47,35 @@ DocuBuddy combines these advanced tools to help you focus on what matters by han
    git clone https://github.com/Sayemahamed/DocuBuddy.git
    ```
 
-2. **Install Requirements**: Install all necessary dependencies by running:
+2. **Create a Virtual Environment**: It's recommended to use a virtual environment to manage dependencies.
+   - For Python 3, create a virtual environment by running:
+     ```bash
+     python3 -m venv docubuddy_env
+     ```
+   - Activate the virtual environment:
+     - On macOS/Linux:
+       ```bash
+       source docubuddy_env/bin/activate
+       ```
+     - On Windows:
+       ```bash
+       docubuddy_env\Scripts\activate
+       ```
+
+3. **Install Requirements**: With the virtual environment activated, install all necessary dependencies by running:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the Application**: Start the Streamlit app with:
+4. **Run the Application**: Start the Streamlit app with:
    ```bash
-   streamlit run app.py
+   streamlit run .\DocuBuddy.py
    ```
+
+5. **Usage**: Upload documents via the interface, ask questions, and explore DocuBuddy's powerful search and question-answering features.
+```
+
+This change aligns the command with the file name `DocuBuddy.py` in the root directory.
 
 4. **Usage**: Upload documents via the interface, ask questions, and explore DocuBuddy's powerful search and question-answering features.
 
