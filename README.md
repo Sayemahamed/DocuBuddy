@@ -65,7 +65,7 @@ DocuBuddy streamlines information retrieval, so you can focus on what matters.
 
 ...
 
-![System Architecture Diagram](./System Diagram.png)
+![System Architecture Diagram](System Diagram.png)
 ## Usage Examples
 
 After uploading a document, try the following sample questions:
