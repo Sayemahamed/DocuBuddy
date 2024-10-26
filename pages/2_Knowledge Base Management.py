@@ -10,7 +10,7 @@ from RAG import Augmented_model
 KNOWLEDGE_BASES_FOLDER = "knowledge_bases"
 
 # Create the knowledge_bases folder if it doesn't exist
-if not os.path.exists(path=KNOWLEDGE_BASES_FOLDER):
+if not os.path.exists(KNOWLEDGE_BASES_FOLDER):
     os.makedirs(name=KNOWLEDGE_BASES_FOLDER)
 
 # Title and description
@@ -43,7 +43,7 @@ if load_button:
 # Handle Save Knowledge Base action
 if save_button:
     kb_path: str = os.path.join(KNOWLEDGE_BASES_FOLDER, kb_name)
-    if not os.path.exists(path=kb_path):
+    if not os.path.exists(kb_path):
         os.makedirs(name=kb_path)
         Augmented_model.save_knowledge_base(name=kb_name)
         st.success(body=f"Knowledge base '{kb_name}' has been created and saved.")

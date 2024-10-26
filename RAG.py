@@ -251,4 +251,3 @@ def clean_string(text: str) -> str:
 
 
 Augmented_model: RAG = RAG()
-Augmented_model.ask(query="What is the meaning of life?")

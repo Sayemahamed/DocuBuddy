@@ -15,8 +15,8 @@ from RAG import Augmented_model
 UPLOAD_FOLDER = "uploads"
 
 # Create the uploads folder if it doesn't exist
-if not os.path.exists(path=UPLOAD_FOLDER):
-    os.makedirs(name=UPLOAD_FOLDER)
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # Title and description
 st.title(body="File Submission and Management")
