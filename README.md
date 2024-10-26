@@ -1,6 +1,7 @@
 # DocuBuddy
 
-DocuBuddy is an advanced assistant for seamless interaction with documents and question-answering. Utilizing technologies like LangChain, Ollama, phi3.5, FastEmbed, and FAISS, DocuBuddy efficiently delivers quick and accurate responses from uploaded documents or general inquiries.
+DocuBuddy is an advanced assistant for seamless interaction with documents and question-answering. Utilizing technologies like LangChain, Ollama, phi3.5, FastEmbed, Streamlit and FAISS, DocuBuddy efficiently delivers quick and accurate responses from uploaded documents or general inquiries.
+[Archetecture of DocuBuddy](https://app.eraser.io/workspace/6rhglH5bcLJdhtmP1qjM?origin=share)
 
 ## Table of Contents
 - [Key Features](#key-features)
