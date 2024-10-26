@@ -106,7 +106,6 @@ DocuBuddy is licensed under the Mozilla Public License 2.0 (MPL 2.0), which perm
 For questions or support, contact:
 - **Email**: sayemahamed183@gmail.com
 
----
 
 [GitHub Repository](https://github.com/Sayemahamed/DocuBuddy)
 
