@@ -1,6 +1,4 @@
-Here’s an enhanced `README.md` file incorporating all the suggestions and reflecting the MPL 2.0 license:
 
-```markdown
 # DocuBuddy
 
 DocuBuddy is a cutting-edge assistant built for seamless interaction with documents and general question-answering, designed to leverage advanced language processing and search technologies. With tools like LangChain, Ollama, phi3.5, FastEmbed, and FAISS, DocuBuddy provides quick and accurate responses from your uploaded documents or for broader general inquiries.
