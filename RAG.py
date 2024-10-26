@@ -170,8 +170,8 @@ def handle_txt(path: str) -> list[Document]:
             }
             cleaned_documents.append(document_data_frame)
     return RecursiveCharacterTextSplitter(
-        chunk_size=600,
-        chunk_overlap=50,
+        chunk_size=300,
+        chunk_overlap=20,
     ).split_documents(documents=cleaned_documents)
 
 
@@ -206,9 +206,14 @@ def handle_csv(path: str) -> list[Document]:
             else:
                 temp_data_holding += f'"{key}": {value},'
         temp_data_holding += "}"
-        data.append(
-            Document(page_content=temp_data_holding, metadata={"File Name": file_name})
-        )
+        if len(data) > 0 and len(str(data[-1])) <= 250:
+            data[-1].page_content += "," + temp_data_holding
+        else:
+            data.append(
+                Document(
+                    page_content=temp_data_holding, metadata={"File Name": file_name}
+                )
+            )
     return data
 
 
@@ -234,8 +239,8 @@ def handle_pdf(path: str) -> list[Document]:
             }
             cleaned_documents.append(document_data_frame)
     return RecursiveCharacterTextSplitter(
-        chunk_size=600,
-        chunk_overlap=50,
+        chunk_size=300,
+        chunk_overlap=20,
     ).split_documents(documents=cleaned_documents)
 
 

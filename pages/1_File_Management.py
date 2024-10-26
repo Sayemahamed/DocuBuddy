@@ -86,7 +86,7 @@ if uploaded_files:
                             page = pdf_document.load_page(
                                 page_id=page_num
                             )  # Load each page properly
-                            text += page.get_text()  # @type-ignore
+                            text += page.get_text()
                     file_content_to_display = text  # Store PDF text content
 
         # Add to Knowledge Base button
