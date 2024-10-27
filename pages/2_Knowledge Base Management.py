@@ -13,6 +13,12 @@ KNOWLEDGE_BASES_FOLDER = "knowledge_bases"
 if not os.path.exists(KNOWLEDGE_BASES_FOLDER):
     os.makedirs(name=KNOWLEDGE_BASES_FOLDER)
 
+with st.sidebar:
+    st.markdown(body="[View the source code](https://github.com/Sayemahamed/DocuBuddy)")
+    st.markdown(
+        body="[Internal Architecture](https://raw.githubusercontent.com/Sayemahamed/DocuBuddy/refs/heads/main/System_Diagram.png)"
+    )
+
 # Title and description
 st.title(body="Knowledge Base Manager")
 st.write("View, load, and save knowledge bases within the `knowledge_bases` folder.")

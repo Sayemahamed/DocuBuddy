@@ -18,6 +18,14 @@ UPLOAD_FOLDER = "uploads"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+with st.sidebar:
+    st.markdown(
+        body="[View the source code](https://github.com/Sayemahamed/DocuBuddy)"
+    )
+    st.markdown(
+        body="[Internal Architecture](https://raw.githubusercontent.com/Sayemahamed/DocuBuddy/refs/heads/main/System_Diagram.png)"
+    )
+
 # Title and description
 st.title(body="File Submission and Management")
 st.write("Upload files and manage them in the `uploads` folder.")

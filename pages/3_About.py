@@ -2,6 +2,12 @@
 
 import streamlit as st
 
+with st.sidebar:
+    st.markdown(body="[View the source code](https://github.com/Sayemahamed/DocuBuddy)")
+    st.markdown(
+        body="[Internal Architecture](https://raw.githubusercontent.com/Sayemahamed/DocuBuddy/refs/heads/main/System_Diagram.png)"
+    )
+
 # Title for the About Page
 st.title(body="About DocuBuddy")
 

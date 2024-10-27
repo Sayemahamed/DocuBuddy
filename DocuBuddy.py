@@ -9,6 +9,11 @@ def main() -> None:
     """
     Main function or entry point for the DocuBuddy app.
     """
+    with st.sidebar:
+        st.markdown(body="[View the source code](https://github.com/Sayemahamed/DocuBuddy)")
+        st.markdown(
+            body="[Internal Architecture](https://raw.githubusercontent.com/Sayemahamed/DocuBuddy/refs/heads/main/System_Diagram.png)"
+        )
     # Main section for responses and document processing feedback
     st.title(body="📄 DocuBuddy")
     st.caption(
@@ -25,9 +30,9 @@ def main() -> None:
     for msg in st.session_state.messages:
         st.chat_message(name=msg["role"]).write(msg["content"])
     if prompt := st.chat_input():
-        answer: str = Augmented_model.ask(query=prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message(name="user").write(prompt)
+        answer: str = Augmented_model.ask(query=prompt)
         st.session_state.messages.append({"role": "assistant", "content": answer})
         st.chat_message(name="assistant").write(answer)
 
