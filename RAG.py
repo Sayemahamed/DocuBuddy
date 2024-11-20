@@ -3,253 +3,222 @@ DocuBuddy RAG (Retrieval Augmented Generation) Implementation.
 This module provides the core RAG functionality for document processing and Q&A.
 """
 
-import asyncio
-import json
-import logging
 import os
+from typing import List, Dict, Any
+import logging
+import numpy as np
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Union
+import pickle
+import tempfile
 
-import pandas as pd
-from langchain_community.document_loaders.pdf import PyMuPDFLoader
-from langchain_community.document_loaders.text import TextLoader
-from langchain_community.embeddings.ollama import OllamaEmbeddings
-from langchain_community.vectorstores.faiss import FAISS
-from langchain_core.documents.base import Document
-from langchain_core.embeddings import Embeddings
-from langchain_core.language_models import LLM
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama.llms import OllamaLLM
-from pydantic import BaseModel, Field
-from tqdm import tqdm
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.document_loaders import (
+    PyPDFLoader,
+    TextLoader,
+    Docx2txtLoader,
+    UnstructuredFileLoader,
+)
+from langchain.embeddings import OllamaEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+from langchain.chat_models import ChatOllama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class RAGConfig(BaseModel):
-    """Configuration for RAG model."""
-    
-    llm_model: str = Field(default="llama3.2", description="Name of the LLM model to use")
-    llm_temperature: float = Field(default=0.7, description="Temperature for LLM responses")
-    chunk_size: int = Field(default=300, description="Size of text chunks for splitting")
-    chunk_overlap: int = Field(default=20, description="Overlap between text chunks")
-    context_limit: int = Field(default=6000, description="Maximum context length for queries")
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
-    
-class DocumentProcessor:
-    """Handles document loading and processing."""
-    
-    def __init__(self, chunk_size: int, chunk_overlap: int):
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+class RAGSystem:
+    def __init__(self, model_name: str = "llama3.2", embed_model: str = "nomic-embed-text"):
+        """Initialize the RAG system with specified models."""
+        self.model_name = model_name
+        self.embed_model = embed_model
+        self.vector_store = None
+        self.conversation_chain = None
+        self.temperature = 0.0
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True
         )
         
-    async def process_text(self, path: Path) -> List[Document]:
-        """Process text files."""
-        try:
-            docs = TextLoader(str(path), encoding="utf-8").load()
-            return self.text_splitter.split_documents(self._clean_documents(docs, path))
-        except Exception as e:
-            logger.error(f"Error processing text file {path}: {e}")
-            raise
-            
-    async def process_csv(self, path: Path) -> List[Document]:
-        """Process CSV files."""
-        try:
-            df = pd.read_csv(path)
-            records = json.loads(df.to_json(orient="records"))
-            docs = []
-            
-            for record in records:
-                content = self._format_record(record)
-                if content:
-                    docs.append(Document(
-                        page_content=content,
-                        metadata={"file_name": path.name, "type": "csv"}
-                    ))
-            return docs
-        except Exception as e:
-            logger.error(f"Error processing CSV file {path}: {e}")
-            raise
-            
-    async def process_pdf(self, path: Path) -> List[Document]:
-        """Process PDF files."""
-        try:
-            loader = PyMuPDFLoader(str(path))
-            docs = loader.load()
-            return self.text_splitter.split_documents(self._clean_documents(docs, path))
-        except Exception as e:
-            logger.error(f"Error processing PDF file {path}: {e}")
-            raise
-            
-    def _clean_documents(self, docs: List[Document], path: Path) -> List[Document]:
-        """Clean and prepare documents."""
-        cleaned_docs = []
-        for doc in docs:
-            if doc.page_content.strip():
-                doc.page_content = self._clean_text(doc.page_content)
-                doc.metadata.update({"file_name": path.name})
-                cleaned_docs.append(doc)
-        return cleaned_docs
-    
-    @staticmethod
-    def _clean_text(text: str) -> str:
-        """Clean text content."""
-        import re
-        return re.sub(r'\s+', ' ', text).strip()
+        # Initialize embeddings
+        self.embeddings = OllamaEmbeddings(
+            model=self.embed_model,
+            temperature=0.0
+        )
         
-    @staticmethod
-    def _format_record(record: Dict[str, Any]) -> Optional[str]:
-        """Format a CSV record into a string."""
-        formatted = {}
-        for key, value in record.items():
-            if value and str(value).strip() and str(value).lower() not in ['none', 'null', '0']:
-                formatted[key] = value
-        return json.dumps(formatted) if formatted else None
+        # Initialize LLM
+        self._initialize_llm()
 
-class RAG:
-    """Retrieval-Augmented Generation implementation."""
-    
-    def __init__(self, config: Optional[RAGConfig] = None):
-        """Initialize RAG with optional configuration."""
-        self.config = config or RAGConfig()
-        self.logger = logging.getLogger(__name__)
-        self._initialize_components()
-        
-    def _initialize_components(self) -> None:
-        """Initialize LLM, embeddings, and vector store."""
-        try:
-            self.embedding_model: Embeddings = OllamaEmbeddings(
-                model=self.config.llm_model,
-                base_url=self.config.ollama_base_url
-            )
-            
-            self.llm: LLM = OllamaLLM(
-                model=self.config.llm_model,
-                temperature=self.config.llm_temperature,
-                base_url=self.config.ollama_base_url
-            )
-            
-            # Initialize with placeholder document
-            self.vector_store = FAISS.from_documents(
-                documents=[Document(
-                    page_content="placeholder",
-                    metadata={"type": "placeholder"}
-                )],
-                embedding=self.embedding_model
-            )
-            
-            self.doc_processor = DocumentProcessor(
-                chunk_size=self.config.chunk_size,
-                chunk_overlap=self.config.chunk_overlap
-            )
-            
-        except Exception as e:
-            self.logger.error(f"Failed to initialize RAG components: {e}")
-            raise
-            
-    async def add_document(self, file_path: Union[str, Path]) -> None:
-        """Add a document to the knowledge base."""
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"File not found: {path}")
-            
-        processors = {
-            ".txt": self.doc_processor.process_text,
-            ".csv": self.doc_processor.process_csv,
-            ".pdf": self.doc_processor.process_pdf
-        }
-        
-        processor = processors.get(path.suffix.lower())
-        if not processor:
-            raise ValueError(f"Unsupported file type: {path.suffix}")
-            
-        try:
-            docs = await processor(path)
-            self.vector_store.add_documents(docs)
-            self.logger.info(f"Successfully processed {path}")
-        except Exception as e:
-            self.logger.error(f"Error processing {path}: {e}")
-            raise
-            
-    async def query(self, query: str) -> str:
-        """Process a query and return a response."""
-        if not query.strip():
-            raise ValueError("Query cannot be empty")
-            
-        try:
-            context = await self._get_context(query)
-            return await self._generate_response(query, context)
-        except Exception as e:
-            self.logger.error(f"Error processing query: {e}")
-            return "I encountered an error processing your query. Please try again."
-            
-    async def _get_context(self, query: str) -> List[str]:
-        """Retrieve relevant context for the query."""
-        relevant_docs = self.vector_store.similarity_search_with_relevance_scores(
-            query=query,
-            k=50
+        # Initialize text splitter
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len
         )
         
-        context = []
-        length_count = len(query)
+    def _initialize_llm(self):
+        """Initialize or reinitialize the LLM with current settings."""
+        callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+        self.llm = ChatOllama(
+            model=self.model_name,
+            callback_manager=callback_manager,
+            temperature=self.temperature
+        )
         
-        for doc, score in relevant_docs:
-            if score <= 0.2 or length_count >= self.config.context_limit:
-                break
-            content = f"({doc.page_content})=>{doc.metadata}"
-            length_count += len(content)
-            context.append(content)
+        # Reinitialize conversation chain if it exists
+        if self.vector_store is not None:
+            self._initialize_conversation_chain()
             
-        return context
+    def _initialize_conversation_chain(self):
+        """Initialize or reinitialize the conversation chain."""
+        self.conversation_chain = ConversationalRetrievalChain.from_llm(
+            llm=self.llm,
+            retriever=self.vector_store.as_retriever(
+                search_kwargs={"k": 3}
+            ),
+            memory=self.memory,
+            return_source_documents=True,
+            output_key="answer"  # Explicitly set output key for memory
+        )
+
+    def update_model(self, model_name: str):
+        """Update the model and reinitialize components."""
+        self.model_name = model_name
+        self._initialize_llm()
+        logger.info(f"Updated model to {model_name}")
         
-    async def _generate_response(self, query: str, context: List[str]) -> str:
-        """Generate a response using the LLM."""
-        prompt = self._create_prompt(query, context)
-        return self.llm.invoke(prompt)
-        
-    def _create_prompt(self, query: str, context: List[str]) -> str:
-        """Create a prompt for the LLM."""
-        return f"""
-        You are DocuBuddy, the AI assistant for {os.getlogin()}.
-        For document-based questions (Factual Lookup, Summaries, Analysis, etc.), use the provided context.
-        For general knowledge questions, respond without referencing documents unless necessary.
-        Be concise and precise. If uncertain, acknowledge it and request clarification.
-        
-        Question: {query}
-        
-        Context: {chr(10).join(context) if context else "No relevant context found."}
-        """
-        
-    async def save_knowledge_base(self, path: Union[str, Path]) -> None:
-        """Save the current knowledge base."""
+    def update_temperature(self, temperature: float):
+        """Update the temperature setting."""
+        self.temperature = temperature
+        self._initialize_llm()
+        logger.info(f"Updated temperature to {temperature}")
+
+    def load_document(self, file_path: str) -> List[str]:
+        """Load and split a document into chunks."""
         try:
-            save_path = Path(path)
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            self.vector_store.save_local(str(save_path))
-            self.logger.info(f"Knowledge base saved to {save_path}")
+            # Select appropriate loader based on file extension
+            ext = Path(file_path).suffix.lower()
+            if ext == '.pdf':
+                loader = PyPDFLoader(file_path)
+            elif ext == '.txt':
+                loader = TextLoader(file_path)
+            elif ext == '.docx':
+                loader = Docx2txtLoader(file_path)
+            else:
+                loader = UnstructuredFileLoader(file_path)
+            
+            # Load and split the document
+            documents = loader.load()
+            chunks = self.text_splitter.split_documents(documents)
+            logger.info(f"Successfully loaded and split document: {file_path}")
+            return chunks
+            
         except Exception as e:
-            self.logger.error(f"Error saving knowledge base: {e}")
+            logger.error(f"Error loading document {file_path}: {str(e)}")
             raise
-            
-    async def load_knowledge_base(self, path: Union[str, Path]) -> None:
-        """Load a saved knowledge base."""
+
+    def process_documents(self, file_paths: List[str], kb_name: str = None) -> None:
+        """Process multiple documents and create/update vector store."""
         try:
-            load_path = Path(path)
-            if not load_path.exists():
-                raise FileNotFoundError(f"Knowledge base not found: {load_path}")
+            all_chunks = []
+            for file_path in file_paths:
+                chunks = self.load_document(file_path)
+                all_chunks.extend(chunks)
+            
+            # Create or update vector store
+            if self.vector_store is None:
+                self.vector_store = FAISS.from_documents(
+                    documents=all_chunks,
+                    embedding=self.embeddings
+                )
+            else:
+                self.vector_store.add_documents(all_chunks)
+            
+            # Initialize conversation chain
+            self._initialize_conversation_chain()
+            
+            logger.info(f"Successfully processed {len(file_paths)} documents")
+            
+        except Exception as e:
+            logger.error(f"Error processing documents: {str(e)}")
+            raise
+
+    def save_knowledge_base(self, save_path: str) -> None:
+        """Save the vector store to disk."""
+        try:
+            if self.vector_store is not None:
+                # Create directory if it doesn't exist
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
                 
-            self.vector_store = FAISS.load_local(
-                str(load_path),
-                self.embedding_model,
-                allow_dangerous_deserialization=True
-            )
-            self.logger.info(f"Knowledge base loaded from {load_path}")
+                # Save the vector store
+                self.vector_store.save_local(save_path)
+                logger.info(f"Successfully saved knowledge base to {save_path}")
+            else:
+                logger.warning("No vector store to save")
+                
         except Exception as e:
-            self.logger.error(f"Error loading knowledge base: {e}")
+            logger.error(f"Error saving knowledge base: {str(e)}")
             raise
+
+    def load_knowledge_base(self, load_path: str) -> None:
+        """Load a vector store from disk."""
+        try:
+            if os.path.exists(load_path):
+                self.vector_store = FAISS.load_local(
+                    load_path,
+                    self.embeddings,
+                    allow_dangerous_deserialization=True  # Only for local files we created
+                )
+                
+                # Initialize conversation chain
+                self._initialize_conversation_chain()
+                
+                logger.info(f"Successfully loaded knowledge base from {load_path}")
+            else:
+                logger.warning(f"Knowledge base not found at {load_path}")
+                
+        except Exception as e:
+            logger.error(f"Error loading knowledge base: {str(e)}")
+            raise
+
+    def query(self, question: str) -> Dict[str, Any]:
+        """Query the knowledge base."""
+        try:
+            if self.conversation_chain is None:
+                raise ValueError("No knowledge base loaded. Please process documents first.")
+            
+            # Get response from conversation chain
+            response = self.conversation_chain({"question": question})
+            
+            # Extract answer and source documents
+            answer = response['answer']
+            source_docs = response['source_documents']
+            
+            # Format source documents
+            sources = []
+            for doc in source_docs:
+                source_info = {
+                    'content': doc.page_content,
+                    'metadata': doc.metadata
+                }
+                sources.append(source_info)
+            
+            return {
+                'answer': answer,
+                'sources': sources
+            }
+            
+        except Exception as e:
+            logger.error(f"Error querying knowledge base: {str(e)}")
+            raise
+
+    def clear_memory(self):
+        """Clear conversation memory."""
+        self.memory.clear()
+        logger.info("Cleared conversation memory")
 
 # Create a global instance with default configuration
-rag_instance = RAG()
+rag_instance = RAGSystem()

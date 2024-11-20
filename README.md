@@ -1,117 +1,121 @@
-# DocuBuddy
+# DocuBuddy 📚
 
-DocuBuddy is an advanced assistant for seamless interaction with documents and question-answering. Utilizing technologies like LangChain, Ollama, phi3.5, FastEmbed, Streamlit and FAISS, DocuBuddy efficiently delivers quick and accurate responses from uploaded documents or general inquiries.
-[Archetecture of DocuBuddy](https://app.eraser.io/workspace/6rhglH5bcLJdhtmP1qjM?origin=share)
+An intelligent document interaction and analysis tool powered by advanced RAG (Retrieval Augmented Generation) capabilities.
 
-## Table of Contents
-- [Key Features](#key-features)
-- [Use Cases](#use-cases)
-- [Getting Started](#getting-started)
-- [Usage Examples](#usage-examples)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-- [Contact](#contact)
+## 🌟 Features
 
-## Key Features
+- **Multi-Document Processing**: Support for PDF, TXT, and DOCX files
+- **Intelligent Q&A**: Advanced RAG-based document querying
+- **Multiple AI Models**: Support for various Ollama models
+  - llama3.2 (Default, recommended)
+  - mistral
+  - llama2
+  - codellama
+- **Dynamic Knowledge Base**: Efficient document storage and retrieval
+- **User-Friendly Interface**: Built with Streamlit for ease of use
+- **Source Attribution**: Track which documents provided answers
+- **Conversation Memory**: Maintain context in discussions
+- **Temperature Control**: Adjust AI response creativity
 
-- **Document Interaction with LangChain**: LangChain supports document queries, enabling DocuBuddy to process documents of various formats and content types.
-- **Efficient Search with FAISS**: FAISS quickly locates relevant content within documents through fast indexing and optimized retrieval.
-- **Embeddings with FastEmbed**: FastEmbed enables high-quality embeddings, enhancing DocuBuddy's question-answering capabilities.
-- **Advanced Model Support**: Integrating models like Ollama and phi3.5, DocuBuddy handles both document-based and general questions.
-- **User-Friendly Interface**: Easily upload documents, ask questions, and explore document insights without technical expertise.
+## 🚀 Quick Start
 
-## Use Cases
-
-DocuBuddy is ideal for:
-- **Researchers** needing quick insights from multiple documents
-- **Professionals** seeking efficient document searches
-- **Students** looking to understand new topics quickly
-
-DocuBuddy streamlines information retrieval, so you can focus on what matters.
-
-## Getting Started
-
-1. **Clone the Repository**:
+1. **Prerequisites**
    ```bash
-   git clone https://github.com/Sayemahamed/DocuBuddy.git
-   ```
-
-2. **Set Up Virtual Environment**:
-   ```bash
-   python3 -m venv docubuddy_env
-   ```
-   - Activate the environment:
-     - macOS/Linux:
-       ```bash
-       source docubuddy_env/bin/activate
-       ```
-     - Windows:
-       ```bash
-       docubuddy_env\Scripts\activate
-       ```
-
-3. **Install Dependencies**:
-   ```bash
+   # Install Ollama (required)
+   # Windows: Follow instructions at https://ollama.ai/download
+   
+   # Install Python 3.9+
+   python --version
+   
+   # Create virtual environment
+   python -m venv .venv
+   .venv\Scripts\activate
+   
+   # Install dependencies
    pip install -r requirements.txt
    ```
 
-4. **Run the Application**:
+2. **Run the Application**
    ```bash
-   streamlit run .\DocuBuddy.py
+   streamlit run DocuBuddy.py
    ```
-## System Architecture
 
-...
+3. **Access the Interface**
+   - Open your browser to `http://localhost:8501`
+   - Use the sidebar to configure AI model settings
+   - Upload documents in the File Management page
+   - Start asking questions!
 
-![System Architecture Diagram](System_Diagram.png)
-## Usage Examples
+## 📁 Project Structure
 
-After uploading a document, try the following sample questions:
-- "Summarize the contents of the uploaded document."
-- "What are the key findings in section 2 of the document?"
+```
+DocuBuddy/
+├── DocuBuddy.py          # Main application
+├── RAG.py                # RAG implementation
+├── pages/
+│   ├── 1_File_Management.py        # File upload and processing
+│   └── 2_Knowledge_Base_Management.py  # KB management
+├── knowledge_bases/      # Stored knowledge bases
+├── uploads/             # Temporary file storage
+└── requirements.txt     # Python dependencies
+```
 
-DocuBuddy will analyze and respond based on document content, providing quick insights.
+## 🛠️ Configuration
 
-## Roadmap
+### Environment Setup
+- Knowledge bases stored in `knowledge_bases/`
+- Temporary uploads in `uploads/`
+- Default model: `llama3.2`
+- Default embedding: `nomic-embed-text`
 
-- **Expanded Model Integration**: Support for additional NLP models
-- **Multi-Document Querying**: Search across multiple documents simultaneously
-- **Enhanced PDF Parsing**: Better handling of complex document layouts
-- **Security Features**: Optional authentication for secure access
+### Supported File Types
+- PDF Documents (*.pdf)
+- Text Files (*.txt)
+- Word Documents (*.docx)
 
-## Contributing
+## 💡 Usage Tips
 
-To contribute:
-1. Fork the repository.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/YourFeature
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -am 'Add your feature'
-   ```
-4. Push to the branch and open a Pull Request.
+1. **File Management**
+   - Upload documents in the File Management page
+   - Process files individually or in batch
+   - Monitor processing status and KB assignment
 
-Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+2. **Knowledge Base Management**
+   - Create and manage knowledge bases
+   - View KB sizes and contents
+   - Delete or archive old KBs
 
-## Troubleshooting
+3. **Chat Interface**
+   - Select AI model from sidebar
+   - Adjust temperature for response creativity
+   - View source documents for answers
+   - Clear conversation when needed
 
-- **Error loading a PDF?** Check format compatibility; larger PDFs may need more memory.
-- **Custom embeddings?** Update `fastembed.py` for custom embeddings and restart the app.
+## 🔒 Security Notes
 
-## License
+- Only processes local files
+- Safe deserialization for knowledge bases
+- Secure document handling
+- No external API dependencies
 
-DocuBuddy is licensed under the Mozilla Public License 2.0 (MPL 2.0), which permits both open-source and proprietary use. Modifications to licensed files must be disclosed when distributed. For more details, refer to the [LICENSE](LICENSE) file.
+## 🚧 Limitations
 
-## Contact
+- Requires local Ollama installation
+- Limited to supported document formats
+- Memory constraints for large documents
+- Local processing only
 
-For questions or support, contact:
-- **Email**: sayemahamed183@gmail.com
+## 🤝 Contributing
 
+Contributions are welcome! Please feel free to submit pull requests.
 
-[GitHub Repository](https://github.com/Sayemahamed/DocuBuddy)
+## 📝 License
 
+This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 🙏 Acknowledgments
+
+- Built with [Streamlit](https://streamlit.io/)
+- Powered by [LangChain](https://python.langchain.com/)
+- Uses [Ollama](https://ollama.ai/) for AI models
+- Embeddings by [Nomic](https://nomic.ai/)

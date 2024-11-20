@@ -35,3 +35,4 @@ mypy
 pytest
 pytest-asyncio
 pytest-cov
+pypdf

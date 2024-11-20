@@ -1,227 +1,130 @@
-"""This page contains the knowledge base management functionality."""
-
-import os
 import streamlit as st
-from RAG import Augmented_model
+import os
 from pathlib import Path
-import json
-from datetime import datetime
-import logging
+import shutil
+from RAG import rag_instance
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Constants
+KB_DIR = "knowledge_bases"
+UPLOADS_DIR = "uploads"
 
-# Folder containing knowledge bases
-KNOWLEDGE_BASES_FOLDER = "knowledge_bases"
+def ensure_directories():
+    """Ensure required directories exist."""
+    for directory in [KB_DIR, UPLOADS_DIR]:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
-# Create the knowledge_bases folder if it doesn't exist
-if not os.path.exists(KNOWLEDGE_BASES_FOLDER):
-    os.makedirs(name=KNOWLEDGE_BASES_FOLDER)
-
-st.set_page_config(
-    page_title="Knowledge Base Management - DocuBuddy",
-    page_icon="🧠",
-    layout="wide"
-)
-
-st.markdown("""
-    <style>
-        .kb-section {
-            background-color: #f8f9fa;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-        }
-        .kb-card {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            border: 1px solid #e9ecef;
-            transition: transform 0.2s;
-        }
-        .kb-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .metric-card {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid #e9ecef;
-        }
-        .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        .metric-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-def knowledge_base_ui():
-    st.title("🧠 Knowledge Base Management")
-    st.caption("Manage and organize your document knowledge bases")
+def get_kb_size(kb_path: str) -> str:
+    """Get the size of a knowledge base directory in human-readable format."""
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(kb_path):
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+            total_size += os.path.getsize(file_path)
     
-    # Create tabs for different KB operations
-    tab1, tab2, tab3 = st.tabs(["Active KB", "Saved KBs", "Settings"])
+    # Convert to human-readable format
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if total_size < 1024:
+            return f"{total_size:.1f} {unit}"
+        total_size /= 1024
+    return f"{total_size:.1f} TB"
+
+def kb_management_ui():
+    """Display the knowledge base management interface."""
+    st.title("📚 Knowledge Base Management")
     
-    with tab1:
-        st.markdown('<div class="kb-section">', unsafe_allow_html=True)
-        st.header("Active Knowledge Base")
-        
-        # Active KB Stats
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.markdown("""
-                <div class="metric-card">
-                    <div class="metric-value">128</div>
-                    <div class="metric-label">Documents</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-                <div class="metric-card">
-                    <div class="metric-value">1.2K</div>
-                    <div class="metric-label">Chunks</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown("""
-                <div class="metric-card">
-                    <div class="metric-value">24MB</div>
-                    <div class="metric-label">Size</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            st.markdown("""
-                <div class="metric-card">
-                    <div class="metric-value">99%</div>
-                    <div class="metric-label">Health</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Active Documents List
-        st.subheader("📄 Active Documents")
-        with st.container():
-            for i in range(3):  # Replace with actual document list
-                st.markdown(f"""
-                    <div class="kb-card">
-                        <h3>Document {i+1}</h3>
-                        <p>Added: {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-                        <p>Size: 1.2MB | Chunks: 45 | Status: Active</p>
-                    </div>
-                """, unsafe_allow_html=True)
+    # Ensure directories exist
+    ensure_directories()
     
-    with tab2:
-        st.header("💾 Saved Knowledge Bases")
+    # Sidebar for KB creation and settings
+    with st.sidebar:
+        st.header("Create Knowledge Base")
         
-        # KB Search and Filter
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.text_input("🔍 Search Knowledge Bases", placeholder="Search by name or description...")
-        with col2:
-            st.selectbox("Filter By", ["All", "Recent", "Largest", "Smallest"])
+        # KB name input
+        kb_name = st.text_input(
+            "Knowledge Base Name",
+            help="Enter a name for the new knowledge base"
+        ).strip()
         
-        # Saved KBs Grid
-        col1, col2 = st.columns(2)
+        # File uploader
+        uploaded_files = st.file_uploader(
+            "Upload Documents",
+            type=["pdf", "txt", "docx"],
+            accept_multiple_files=True,
+            help="Select documents to add to the knowledge base"
+        )
         
-        with col1:
-            st.markdown("""
-                <div class="kb-card">
-                    <h3>Project Documentation KB</h3>
-                    <p>Created: 2024-02-10</p>
-                    <p>Documents: 45 | Size: 12MB</p>
-                    <p>Description: Contains project documentation and technical specs.</p>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-                <div class="kb-card">
-                    <h3>Research Papers KB</h3>
-                    <p>Created: 2024-02-09</p>
-                    <p>Documents: 23 | Size: 8MB</p>
-                    <p>Description: Collection of research papers and academic documents.</p>
-                </div>
-            """, unsafe_allow_html=True)
+        # Create KB button
+        if kb_name and uploaded_files:
+            if st.button("Create Knowledge Base", type="primary"):
+                try:
+                    # Create KB directory
+                    kb_path = os.path.join(KB_DIR, kb_name)
+                    os.makedirs(kb_path, exist_ok=True)
+                    
+                    # Save uploaded files
+                    file_paths = []
+                    for file in uploaded_files:
+                        file_path = os.path.join(UPLOADS_DIR, file.name)
+                        with open(file_path, "wb") as f:
+                            f.write(file.getvalue())
+                        file_paths.append(file_path)
+                    
+                    # Process documents
+                    with st.spinner("Processing documents..."):
+                        rag_instance.process_documents(file_paths)
+                        rag_instance.save_knowledge_base(kb_path)
+                    
+                    # Clean up uploaded files
+                    for file_path in file_paths:
+                        os.remove(file_path)
+                    
+                    st.success("Knowledge base created successfully!")
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Error creating knowledge base: {str(e)}")
     
-    with tab3:
-        st.header("⚙️ Knowledge Base Settings")
-        
-        with st.expander("Chunking Settings"):
-            st.slider("Chunk Size", 100, 2000, 500)
-            st.slider("Chunk Overlap", 0, 200, 50)
-            st.checkbox("Auto-detect optimal chunk size")
-        
-        with st.expander("Vector Store Settings"):
-            st.selectbox("Vector Store Type", ["FAISS", "Chroma", "Pinecone"])
-            st.number_input("Number of Vectors", min_value=1, value=3)
-            st.checkbox("Enable caching")
-        
-        with st.expander("Maintenance"):
-            st.button("Optimize Knowledge Base")
-            st.button("Rebuild Index")
-            st.button("Clean Temporary Files")
-
-    # Input field for knowledge base name
-    kb_name: str = st.text_input(label="Enter Knowledge Base Name")
-
-    # Buttons for loading and saving the knowledge base
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        load_button: bool = st.button(label="Load Knowledge Base")
-    with col2:
-        save_button: bool = st.button(label="Save Current Knowledge Base")
-
-    # Handle Load Knowledge Base action
-    if load_button:
-        knowledge_bases = [
-            d
-            for d in os.listdir(path=KNOWLEDGE_BASES_FOLDER)
-            if os.path.isdir(s=os.path.join(KNOWLEDGE_BASES_FOLDER, d))
-        ]
-        if kb_name in knowledge_bases:
-            Augmented_model.load_knowledge_base(name=kb_name)
-            st.success(body=f"Knowledge base '{kb_name}' loaded successfully.")
-        else:
-            st.error(body=f"Knowledge base '{kb_name}' does not exist.")
-
-    # Handle Save Knowledge Base action
-    if save_button:
-        kb_path: str = os.path.join(KNOWLEDGE_BASES_FOLDER, kb_name)
-        if not os.path.exists(kb_path):
-            os.makedirs(name=kb_path)
-            Augmented_model.save_knowledge_base(name=kb_name)
-            st.success(body=f"Knowledge base '{kb_name}' has been created and saved.")
-        else:
-            st.warning(
-                body=f"Knowledge base '{kb_name}' already exists. Saving current data."
-            )
-
-    # List all subdirectories in the knowledge_bases folder
-    st.write("### Available Knowledge Bases:")
-    knowledge_bases: list[str] = [
-        d
-        for d in os.listdir(path=KNOWLEDGE_BASES_FOLDER)
-        if os.path.isdir(os.path.join(KNOWLEDGE_BASES_FOLDER, d))
-    ]
-
-    if knowledge_bases:
-        for kb in knowledge_bases:
-            st.write(f"- {kb}")
+    # Main content area
+    st.header("Available Knowledge Bases")
+    
+    # Get list of knowledge bases
+    kbs = []
+    if os.path.exists(KB_DIR):
+        kbs = [d for d in os.listdir(KB_DIR) if os.path.isdir(os.path.join(KB_DIR, d))]
+    
+    if not kbs:
+        st.info("No knowledge bases found. Create one using the sidebar.")
     else:
-        st.write("No knowledge bases found in the `knowledge_bases` folder.")
+        # Display knowledge bases in a grid
+        cols = st.columns(3)
+        for idx, kb_name in enumerate(kbs):
+            kb_path = os.path.join(KB_DIR, kb_name)
+            with cols[idx % 3]:
+                with st.expander(f"📚 {kb_name}", expanded=True):
+                    st.metric("Size", get_kb_size(kb_path))
+                    
+                    # KB actions
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Load", key=f"load_{kb_name}"):
+                            try:
+                                with st.spinner("Loading knowledge base..."):
+                                    rag_instance.load_knowledge_base(kb_path)
+                                    st.session_state.current_kb = kb_name
+                                    st.session_state.kb_loaded = True
+                                st.success("Knowledge base loaded!")
+                            except Exception as e:
+                                st.error(f"Error loading knowledge base: {str(e)}")
+                    
+                    with col2:
+                        if st.button("Delete", key=f"delete_{kb_name}"):
+                            try:
+                                shutil.rmtree(kb_path)
+                                st.success("Knowledge base deleted!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error deleting knowledge base: {str(e)}")
 
 if __name__ == "__main__":
-    knowledge_base_ui()
+    kb_management_ui()
