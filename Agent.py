@@ -17,11 +17,15 @@ from langchain_community.document_loaders import (
     Docx2txtLoader,
     UnstructuredFileLoader,
 )
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-from langchain_community.chat_models import ChatOllama
+from langchain_core.memory import BaseMemory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import BaseMessage
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+from langchain_core.memory import ConversationBufferMemory
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -38,8 +42,10 @@ class RAGSystem:
         self.conversation_chain = None
         self.temperature = 0.0
         
-        # Initialize memory with output key
+        # Initialize chat history and memory
+        self.chat_history = ChatMessageHistory()
         self.memory = ConversationBufferMemory(
+            chat_memory=self.chat_history,
             memory_key="chat_history",
             output_key="answer",
             return_messages=True
@@ -47,8 +53,7 @@ class RAGSystem:
         
         # Initialize embeddings
         self.embeddings = OllamaEmbeddings(
-            model=self.embed_model,
-            temperature=0.0
+            model=self.embed_model
         )
         
         # Initialize LLM
@@ -193,7 +198,7 @@ class RAGSystem:
                 raise ValueError("No knowledge base loaded. Please process documents first.")
             
             # Get response from conversation chain
-            response = self.conversation_chain({"question": question})
+            response = self.conversation_chain.invoke({"question": question})
             
             # Extract answer and source documents
             answer = response['answer']

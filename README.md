@@ -1,161 +1,91 @@
-# DocuBuddy 
+# DocuBuddy 🤖
 
-An intelligent document interaction and analysis tool powered by advanced RAG (Retrieval Augmented Generation) capabilities.
+An intelligent document interaction tool with advanced RAG (Retrieval Augmented Generation) capabilities.
 
-## Features
+## 🌟 Features
 
-- **Multi-Document Processing**: Support for PDF, TXT, and DOCX files
-- **Intelligent Q&A**: Advanced RAG-based document querying
-- **Multiple AI Models**: Support for various Ollama models
-  - llama3.2 (Default, recommended)
-  - mistral
-  - llama2
-  - codellama
-- **Dynamic Knowledge Base**: Efficient document storage and retrieval
-- **User-Friendly Interface**: Built with Streamlit for ease of use
-- **Source Attribution**: Track which documents provided answers
-- **Conversation Memory**: Maintain context in discussions
-- **Temperature Control**: Adjust AI response creativity
+- 📄 Multi-format Document Support (PDF, TXT, DOCX)
+- 🔍 Semantic Search with Advanced RAG
+- 💬 Conversational Memory
+- 📚 Dynamic Knowledge Base Management
+- 📝 Source Document Tracking
+- 🎯 Precise Document Retrieval
 
-## Quick Start
+## 🛠️ Technical Stack
 
-1. **Prerequisites**
+### AI Models
+- Default: llama3.2
+- Alternatives: mistral, llama2, codellama
+- Embeddings: nomic-embed-text via langchain-ollama
+
+### Core Dependencies
+- Python 3.9+
+- Streamlit
+- LangChain (latest version)
+- langchain-community
+- langchain-ollama
+- FAISS
+- Ollama (local server)
+
+## 🚀 Getting Started
+
+1. **Environment Setup**
    ```bash
-   # Install Ollama (required)
-   # Windows: Follow instructions at https://ollama.ai/download
-   
-   # Install Python 3.9+
-   python --version
-   
-   # Create virtual environment
    python -m venv .venv
-   .venv\Scripts\activate
-   
-   # Install dependencies
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-2. **Run the Application**
+2. **Install Ollama**
+   - Download and install from [Ollama's website](https://ollama.ai/)
+   - Ensure the Ollama server is running locally
+
+3. **Run DocuBuddy**
    ```bash
    streamlit run DocuBuddy.py
    ```
 
-3. **Access the Interface**
-   - Open your browser to `http://localhost:8501`
-   - Use the sidebar to configure AI model settings
-   - Upload documents in the File Management page
-   - Start asking questions!
+## 📁 Project Structure
 
-## Project Structure
+- `DocuBuddy.py`: Main Streamlit application
+- `Agent.py`: Core RAG implementation
+- `pages/`:
+  - `1_File_Management.py`: Document upload and processing
+  - `2_Knowledge_Base_Management.py`: KB creation and management
+- `uploads/`: Temporary file storage
+- `knowledge_bases/`: Persistent KB storage
 
-```
-DocuBuddy/
-├── DocuBuddy.py          # Main application
-├── Agent.py              # AI agent implementation
-├── pages/
-│   ├── 1_File_Management.py        # File upload and processing
-│   └── 2_Knowledge_Base_Management.py  # KB management
-├── knowledge_bases/      # Stored knowledge bases
-├── uploads/             # Temporary file storage
-└── requirements.txt     # Python dependencies
-```
+## 🔧 Configuration
 
-## Configuration
+The system is configurable through the UI:
+- AI Model Selection
+- Temperature Settings
+- Knowledge Base Management
+- Document Processing Options
 
-### Environment Setup
-- Knowledge bases stored in `knowledge_bases/`
-- Temporary uploads in `uploads/`
-- Default model: `llama3.2`
-- Default embedding: `nomic-embed-text`
+## 🔒 Security Features
 
-### Supported File Types
-- PDF Documents (*.pdf)
-- Text Files (*.txt)
-- Word Documents (*.docx)
+- Local-only Processing
+- Safe File Handling
+- Input Validation
+- Secure Document Management
 
-## Understanding DocuBuddy's Data Flow
+## 🤝 Contributing
 
-### Chat UI
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-The main application, `DocuBuddy.py`, serves as the interface for chatting with the AI. Users can:
-- Query documents and retrieve intelligent answers
-- Select AI models (llama3.2, mistral, llama2, codellama)
-- Adjust response temperature
-- View source documents for answers
-- Maintain conversation context
+## 📝 Notes
 
-### File Upload & Processing
+- Requires a running Ollama server
+- Supports multiple document formats
+- Uses local processing for security
+- Maintains conversation context
+- Provides source attribution
 
-`1_File_Management.py` manages the file upload process:
-- Handles PDF, TXT, and DOCX formats
-- Tracks uploaded files until processing is complete
-- Stores files temporarily in `uploads/` directory
-- Generates knowledge bases (KB) stored in `knowledge_bases/`
-- Provides progress tracking and error handling
+## 📄 License
 
-### Knowledge Base Management
-
-`2_Knowledge_Base_Management.py` handles KB tracking and management:
-- Allows loading specific KBs into current conversation
-- Enables deletion of unwanted KBs
-- Manages KB metadata and status
-- Provides KB size and content information
-
-### AI Agent Implementation
-
-The heart of the intelligent Q&A system resides in `Agent.py`:
-- Implements Retrieval-Augmented Generation (RAG) capabilities
-- Uses FAISS for efficient vector storage
-- Integrates with Ollama for AI models
-- Manages conversation memory and context
-- Provides source attribution for answers
-- Handles safe local file operations
-
-This modular flow ensures seamless transitions from file uploading to knowledge generation, management, and conversational AI. The system maintains security through local-only processing and secure file handling while providing an intuitive interface for document interaction.
-
-## Usage Tips
-
-1. **File Management**
-   - Upload documents in the File Management page
-   - Process files individually or in batch
-   - Monitor processing status and KB assignment
-
-2. **Knowledge Base Management**
-   - Create and manage knowledge bases
-   - View KB sizes and contents
-   - Delete or archive old KBs
-
-3. **Chat Interface**
-   - Select AI model from sidebar
-   - Adjust temperature for response creativity
-   - View source documents for answers
-   - Clear conversation when needed
-
-## Security Notes
-
-- Only processes local files
-- Safe deserialization for knowledge bases
-- Secure document handling
-- No external API dependencies
-
-## Limitations
-
-- Requires local Ollama installation
-- Limited to supported document formats
-- Memory constraints for large documents
-- Local processing only
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [Streamlit](https://streamlit.io/)
-- Powered by [LangChain](https://python.langchain.com/)
-- Uses [Ollama](https://ollama.ai/) for AI models
-- Embeddings by [Nomic](https://nomic.ai/)
+MIT License - See LICENSE file for details
