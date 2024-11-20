@@ -1,11 +1,37 @@
-streamlit
-streamlit_chat
-langchain
-langchain-community
-langchain-ollama
-fastembed
-faiss-cpu
-ipykernel
-pymupdf
-pandas
-NumPy
+# Web Interface
+streamlit==1.31.0
+streamlit-chat==0.1.1
+streamlit-extras==0.3.6
+
+# LangChain and LLM
+langchain==0.1.0
+langchain-community==0.0.10
+langchain-ollama==0.0.1
+
+# Vector Store and Processing
+faiss-cpu==1.7.4
+numpy==1.26.3
+pandas==2.2.0
+
+# Document Processing
+pymupdf==1.23.8
+python-magic-bin==0.4.14; platform_system=='Windows'
+
+# Async Support
+aiofiles==23.2.1
+asyncio==3.4.3
+
+# Utils
+python-dotenv==1.0.0
+typing-extensions==4.9.0
+tqdm==4.66.1
+pydantic==2.6.1
+loguru==0.7.2
+
+# Development
+black==24.1.1
+isort==5.13.2
+mypy==1.8.0
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
