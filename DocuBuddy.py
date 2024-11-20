@@ -17,211 +17,163 @@ from RAG import RAG, RAGConfig
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Page configuration
-st.set_page_config(
-    page_title="DocuBuddy - Your AI Document Assistant",
-    page_icon="📄",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS for better UI
-st.markdown("""
-<style>
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .user-message {
-        background-color: #e6f3ff;
-        border-left: 5px solid #2196F3;
-    }
-    .assistant-message {
-        background-color: #f8f9fa;
-        border-left: 5px solid #4CAF50;
-    }
-    .sidebar .element-container {
-        margin-bottom: 1rem;
-    }
-    .upload-section {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #f8f9fa;
-        margin-bottom: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-class DocuBuddyApp:
-    """Main application class for DocuBuddy."""
-    
+class DocuBuddyUI:
     def __init__(self):
-        """Initialize the DocuBuddy application."""
-        self.initialize_session_state()
-        self.rag = RAG(RAGConfig())
+        self.rag = None
+        self.initialize_page()
         
-    @staticmethod
-    def initialize_session_state() -> None:
-        """Initialize session state variables."""
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-        if "uploaded_files" not in st.session_state:
-            st.session_state.uploaded_files = set()
-        if "knowledge_bases" not in st.session_state:
-            st.session_state.knowledge_bases = []
-            
-    def render_sidebar(self) -> None:
-        """Render the sidebar with file upload and knowledge base management."""
+    def initialize_page(self):
+        # Set page configuration
+        st.set_page_config(
+            page_title="DocuBuddy AI Assistant",
+            page_icon="🤖",
+            layout="wide",
+            initial_sidebar_state="expanded"
+        )
+        
+        # Apply custom CSS
+        st.markdown("""
+            <style>
+                .main {
+                    padding: 2rem;
+                    max-width: 1200px;
+                }
+                .stButton>button {
+                    width: 100%;
+                    border-radius: 5px;
+                    height: 3em;
+                    background-color: #4CAF50;
+                    color: white;
+                }
+                .chat-message {
+                    padding: 1.5rem;
+                    border-radius: 10px;
+                    margin-bottom: 1rem;
+                    display: flex;
+                    align-items: flex-start;
+                }
+                .chat-message.user {
+                    background-color: #E8F5E9;
+                }
+                .chat-message.assistant {
+                    background-color: #F5F5F5;
+                }
+                .chat-message .avatar {
+                    width: 40px;
+                    height: 40px;
+                    margin-right: 1rem;
+                    border-radius: 50%;
+                }
+                .chat-message .message {
+                    flex-grow: 1;
+                }
+                .sidebar .sidebar-content {
+                    padding: 1rem;
+                }
+                div[data-testid="stSidebarNav"] {
+                    background-color: #f8f9fa;
+                    padding-top: 2rem;
+                }
+                .stAlert {
+                    border-radius: 10px;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+    def render_chat_message(self, content, is_user=False):
+        avatar = "👤" if is_user else "🤖"
+        message_type = "user" if is_user else "assistant"
+        
+        st.markdown(f"""
+            <div class="chat-message {message_type}">
+                <div class="avatar">{avatar}</div>
+                <div class="message">{content}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    def main(self):
+        st.title("💬 DocuBuddy AI Assistant")
+        
         with st.sidebar:
-            st.title("📚 Document Management")
-            
-            # File Upload Section
-            st.header("Upload Documents")
-            uploaded_files = st.file_uploader(
-                "Choose your documents",
-                type=["pdf", "txt", "csv"],
-                accept_multiple_files=True,
-                help="Supported formats: PDF, TXT, CSV"
+            st.header("Configuration")
+            model = st.selectbox(
+                "Select Model",
+                ["llama2", "mistral", "codellama"],
+                help="Choose the AI model to use"
             )
             
-            if uploaded_files:
-                for file in uploaded_files:
-                    if file.name not in st.session_state.uploaded_files:
-                        self.process_uploaded_file(file)
-                        
-            # Knowledge Base Management
-            st.header("Knowledge Base")
-            kb_name = st.text_input("Knowledge Base Name")
-            col1, col2 = st.columns(2)
+            temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.7,
+                step=0.1,
+                help="Controls randomness in responses"
+            )
             
-            with col1:
-                if st.button("Save KB", help="Save current knowledge base"):
-                    self.save_knowledge_base(kb_name)
-                    
-            with col2:
-                if st.button("Load KB", help="Load saved knowledge base"):
-                    self.load_knowledge_base(kb_name)
-                    
-            # Links and Info
-            st.markdown("---")
-            st.markdown("[View Source Code](https://github.com/Sayemahamed/DocuBuddy)")
-            st.markdown("[System Architecture](https://raw.githubusercontent.com/Sayemahamed/DocuBuddy/refs/heads/main/System_Diagram.png)")
+            st.divider()
             
-    async def process_uploaded_file(self, file: Any) -> None:
-        """
-        Process an uploaded file and add it to the knowledge base.
-        
-        Args:
-            file: The uploaded file object from Streamlit
-        """
-        try:
-            # Save uploaded file temporarily
-            temp_path = Path("temp") / file.name
-            temp_path.parent.mkdir(exist_ok=True)
+            st.header("Active Documents")
+            if 'active_docs' in st.session_state and st.session_state.active_docs:
+                for doc in st.session_state.active_docs:
+                    st.info(f"📄 {doc}")
+            else:
+                st.warning("No documents loaded")
             
-            with open(temp_path, "wb") as f:
-                f.write(file.getvalue())
-                
-            # Process the file
-            await self.rag.add_document(temp_path)
-            st.session_state.uploaded_files.add(file.name)
+            st.divider()
             
-            # Cleanup
-            temp_path.unlink()
-            st.success(f"Successfully processed {file.name}")
-            
-        except Exception as e:
-            logger.error(f"Error processing file {file.name}: {e}")
-            st.error(f"Error processing {file.name}: {str(e)}")
-            
-    async def save_knowledge_base(self, name: str) -> None:
-        """
-        Save the current knowledge base.
-        
-        Args:
-            name: Name of the knowledge base
-        """
-        if not name:
-            st.warning("Please provide a name for the knowledge base")
-            return
-            
-        try:
-            kb_path = Path("knowledge_bases") / name
-            await self.rag.save_knowledge_base(kb_path)
-            st.success(f"Knowledge base '{name}' saved successfully")
-            
-        except Exception as e:
-            logger.error(f"Error saving knowledge base: {e}")
-            st.error(f"Error saving knowledge base: {str(e)}")
-            
-    async def load_knowledge_base(self, name: str) -> None:
-        """
-        Load a saved knowledge base.
-        
-        Args:
-            name: Name of the knowledge base to load
-        """
-        if not name:
-            st.warning("Please provide the name of the knowledge base to load")
-            return
-            
-        try:
-            kb_path = Path("knowledge_bases") / name
-            await self.rag.load_knowledge_base(kb_path)
-            st.success(f"Knowledge base '{name}' loaded successfully")
-            
-        except Exception as e:
-            logger.error(f"Error loading knowledge base: {e}")
-            st.error(f"Error loading knowledge base: {str(e)}")
-            
-    def render_chat_interface(self) -> None:
-        """Render the chat interface."""
-        st.title("📄 DocuBuddy")
-        st.caption("Your AI assistant for instant document insights!")
-        
-        # Display chat history
-        for msg in st.session_state.messages:
-            message_class = "user-message" if msg["role"] == "user" else "assistant-message"
-            with st.container():
-                st.markdown(f"""
-                <div class="chat-message {message_class}">
-                    <div>{msg["content"]}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-        # Chat input
-        if prompt := st.chat_input("Ask me anything about your documents..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            
-            try:
-                answer = asyncio.run(self.rag.query(prompt))
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-                
-            except Exception as e:
-                logger.error(f"Error processing query: {e}")
-                st.error("I encountered an error processing your query. Please try again.")
-                
-    def run(self) -> None:
-        """Run the DocuBuddy application."""
-        try:
-            self.render_sidebar()
-            self.render_chat_interface()
-            
-        except Exception as e:
-            logger.error(f"Application error: {e}")
-            st.error("An unexpected error occurred. Please refresh the page and try again.")
+            with st.expander("⚙️ Advanced Settings"):
+                chunk_size = st.number_input(
+                    "Chunk Size",
+                    min_value=100,
+                    max_value=2000,
+                    value=500,
+                    step=100
+                )
+                chunk_overlap = st.number_input(
+                    "Chunk Overlap",
+                    min_value=0,
+                    max_value=500,
+                    value=50,
+                    step=10
+                )
 
-def main() -> None:
-    """Main entry point for the DocuBuddy application."""
-    app = DocuBuddyApp()
-    app.run()
+        # Main chat interface
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Display chat messages
+        for message in st.session_state.messages:
+            self.render_chat_message(
+                message["content"],
+                is_user=message["role"] == "user"
+            )
+
+        # Chat input
+        with st.container():
+            if prompt := st.chat_input("Ask me anything about your documents..."):
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                self.render_chat_message(prompt, is_user=True)
+                
+                with st.spinner("Thinking..."):
+                    if self.rag:
+                        response = self.rag.get_response(prompt)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                        self.render_chat_message(response, is_user=False)
+                    else:
+                        st.error("Please load some documents first!")
+
+        # Footer
+        st.markdown("---")
+        st.markdown(
+            """
+            <div style='text-align: center'>
+                <p>Made with ❤️ by DocuBuddy Team</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 if __name__ == "__main__":
-    main()
+    app = DocuBuddyUI()
+    app.main()

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class RAGConfig(BaseModel):
     """Configuration for RAG model."""
     
-    llm_model: str = Field(default="llama3.2:1b", description="Name of the LLM model to use")
+    llm_model: str = Field(default="llama3.2", description="Name of the LLM model to use")
     llm_temperature: float = Field(default=0.7, description="Temperature for LLM responses")
     chunk_size: int = Field(default=300, description="Size of text chunks for splitting")
     chunk_overlap: int = Field(default=20, description="Overlap between text chunks")
