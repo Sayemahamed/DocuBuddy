@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import List, Dict
 import logging
-from RAG import rag_instance
+from Agent import rag_instance
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,6 +52,8 @@ class DocuBuddy:
             st.session_state.kb_loaded = False
         if "current_model" not in st.session_state:
             st.session_state.current_model = "llama3.2"
+        if "current_temperature" not in st.session_state:
+            st.session_state.current_temperature = 0.7
 
     def _setup_page(self):
         """Configure the page layout and sidebar."""
@@ -98,12 +100,13 @@ class DocuBuddy:
                 "Response Creativity",
                 min_value=0.0,
                 max_value=1.0,
-                value=0.0,
+                value=st.session_state.current_temperature,
                 step=0.1,
                 help="Higher values make responses more creative but less focused"
             )
             
-            if temperature != getattr(rag_instance, 'temperature', 0.0):
+            if temperature != st.session_state.current_temperature:
+                st.session_state.current_temperature = temperature
                 rag_instance.update_temperature(temperature)
             
             # Knowledge Base selection
@@ -120,55 +123,88 @@ class DocuBuddy:
                 st.warning("⚠️ No Knowledge Base loaded")
 
     def display_chat_interface(self):
-        """Display the chat interface and handle interactions."""
-        # Display chat messages
+        """
+        Main chat interface for document interaction.
+        Allows users to:
+        - Query documents and get intelligent answers
+        - Select AI models
+        - Adjust response temperature
+        - View source documents
+        - Maintain conversation context
+        """
+        st.title("DocuBuddy Chat")
+        
+        # Sidebar for model configuration
+        with st.sidebar:
+            st.header("Model Settings")
+            model = st.selectbox(
+                "Select AI Model",
+                ["llama3.2", "mistral", "llama2", "codellama"],
+                index=0
+            )
+            temperature = st.slider(
+                "Response Temperature",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.7,
+                step=0.1,
+                help="Higher values make responses more creative"
+            )
+            
+            # Update model if changed
+            if "current_model" not in st.session_state or st.session_state.current_model != model:
+                st.session_state.current_model = model
+                rag_instance.update_model(model)
+            
+            # Update temperature if changed
+            if "current_temperature" not in st.session_state or st.session_state.current_temperature != temperature:
+                st.session_state.current_temperature = temperature
+                rag_instance.update_temperature(temperature)
+        
+        # Initialize chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Display chat history
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
                 if "sources" in message:
-                    with st.expander("View Sources"):
-                        for source in message["sources"]:
-                            st.info(
-                                f"📄 {source['source']} "
-                                f"(Page {source['page']})\n\n"
-                                f"{source['content']}"
-                            )
+                    st.info("Sources: " + message["sources"])
 
         # Chat input
-        if prompt := st.chat_input(f"Ask me about your documents using {st.session_state.current_model}..."):
-            # Add user message
+        if prompt := st.chat_input("Ask about your documents..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            # Generate response
-            with st.chat_message("assistant"):
-                try:
-                    with st.spinner(f"Thinking using {st.session_state.current_model}..."):
+            try:
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
                         response = rag_instance.query(prompt)
+                        sources = response.get("sources", [])
                         
-                        # Display response
+                        # Format source documents
+                        if sources:
+                            source_text = ", ".join([
+                                f"{s.get('metadata', {}).get('source', 'Unknown')}"
+                                for s in sources
+                            ])
+                        else:
+                            source_text = "No specific sources"
+                        
                         st.markdown(response["answer"])
+                        st.info(f"Sources: {source_text}")
                         
-                        # Add to message history with sources
+                        # Save message with sources
                         st.session_state.messages.append({
                             "role": "assistant",
                             "content": response["answer"],
-                            "sources": response["sources"]
+                            "sources": source_text
                         })
-                        
-                        # Display sources in expander
-                        if response["sources"]:
-                            with st.expander("View Sources"):
-                                for source in response["sources"]:
-                                    st.info(
-                                        f"📄 {source['source']} "
-                                        f"(Page {source['page']})\n\n"
-                                        f"{source['content']}"
-                                    )
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-                    logger.error(f"Query error: {str(e)}")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+                logger.error(f"Error in chat interface: {e}", exc_info=True)
 
     def run(self):
         """Run the DocuBuddy application."""

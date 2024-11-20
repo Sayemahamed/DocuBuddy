@@ -6,23 +6,22 @@ This module provides the core RAG functionality for document processing and Q&A.
 import os
 from typing import List, Dict, Any
 import logging
-import numpy as np
 from pathlib import Path
 import pickle
 import tempfile
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
     Docx2txtLoader,
     UnstructuredFileLoader,
 )
-from langchain.embeddings import OllamaEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
-from langchain.chat_models import ChatOllama
+from langchain_community.chat_models import ChatOllama
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -38,8 +37,11 @@ class RAGSystem:
         self.vector_store = None
         self.conversation_chain = None
         self.temperature = 0.0
+        
+        # Initialize memory with output key
         self.memory = ConversationBufferMemory(
             memory_key="chat_history",
+            output_key="answer",
             return_messages=True
         )
         
@@ -81,7 +83,7 @@ class RAGSystem:
             ),
             memory=self.memory,
             return_source_documents=True,
-            output_key="answer"  # Explicitly set output key for memory
+            return_generated_question=False
         )
 
     def update_model(self, model_name: str):

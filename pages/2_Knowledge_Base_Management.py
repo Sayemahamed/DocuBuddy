@@ -1,130 +1,216 @@
 import streamlit as st
 import os
 from pathlib import Path
+import logging
 import shutil
-from RAG import rag_instance
+from datetime import datetime
+from Agent import rag_instance
 
-# Constants
-KB_DIR = "knowledge_bases"
-UPLOADS_DIR = "uploads"
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def ensure_directories():
-    """Ensure required directories exist."""
-    for directory in [KB_DIR, UPLOADS_DIR]:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+st.set_page_config(
+    page_title="Knowledge Base Management - DocuBuddy",
+    page_icon="📚",
+    layout="wide"
+)
 
-def get_kb_size(kb_path: str) -> str:
-    """Get the size of a knowledge base directory in human-readable format."""
-    total_size = 0
-    for dirpath, dirnames, filenames in os.walk(kb_path):
-        for filename in filenames:
-            file_path = os.path.join(dirpath, filename)
-            total_size += os.path.getsize(file_path)
-    
-    # Convert to human-readable format
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if total_size < 1024:
-            return f"{total_size:.1f} {unit}"
-        total_size /= 1024
-    return f"{total_size:.1f} TB"
+def create_kb_directory(kb_name: str) -> Path:
+    """Create a new knowledge base directory with a unique name."""
+    kb_dir = Path("knowledge_bases") / kb_name
+    kb_dir.mkdir(parents=True, exist_ok=True)
+    return kb_dir
 
-def kb_management_ui():
+def save_uploaded_file(uploaded_file, upload_dir: Path) -> Path:
+    """Save an uploaded file to the specified directory."""
+    file_path = upload_dir / uploaded_file.name
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getvalue())
+    return file_path
+
+def get_kb_size(kb_path: Path) -> str:
+    """Calculate the total size of a knowledge base directory."""
+    total_size = sum(f.stat().st_size for f in kb_path.rglob('*') if f.is_file())
+    if total_size < 1024:
+        return f"{total_size} B"
+    elif total_size < 1024 * 1024:
+        return f"{total_size/1024:.1f} KB"
+    else:
+        return f"{total_size/(1024*1024):.1f} MB"
+
+def process_files(files, kb_name: str):
+    """Process uploaded files and create/update a knowledge base."""
+    try:
+        # Create directories
+        upload_dir = Path("uploads")
+        upload_dir.mkdir(exist_ok=True)
+        kb_dir = create_kb_directory(kb_name)
+        
+        # Save and process files
+        file_paths = []
+        for file in files:
+            file_path = save_uploaded_file(file, upload_dir)
+            file_paths.append(file_path)
+        
+        # Create/update knowledge base
+        rag_instance.process_documents(
+            file_paths,
+            kb_name=kb_name
+        )
+        
+        # Save knowledge base
+        rag_instance.save_knowledge_base(str(kb_dir))
+        
+        # Clean up uploaded files
+        for file_path in file_paths:
+            file_path.unlink()
+        
+        return True, "Knowledge base updated successfully!"
+    except Exception as e:
+        logger.error(f"Error processing files: {e}", exc_info=True)
+        return False, f"Error: {str(e)}"
+
+def load_knowledge_base(kb_name: str):
+    """Load a knowledge base."""
+    try:
+        kb_dir = Path("knowledge_bases") / kb_name
+        if kb_dir.exists():
+            rag_instance.load_knowledge_base(str(kb_dir))
+            st.session_state.current_kb = kb_name
+            st.session_state.kb_loaded = True
+            return True, f"Loaded knowledge base: {kb_name}"
+        else:
+            return False, f"Knowledge base not found: {kb_name}"
+    except Exception as e:
+        logger.error(f"Error loading knowledge base: {e}", exc_info=True)
+        return False, f"Error: {str(e)}"
+
+def delete_knowledge_base(kb_name: str):
+    """Delete a knowledge base."""
+    try:
+        kb_dir = Path("knowledge_bases") / kb_name
+        if kb_dir.exists():
+            shutil.rmtree(kb_dir)
+            
+            # Update session state if the deleted KB was active
+            if st.session_state.get("current_kb") == kb_name:
+                st.session_state.current_kb = None
+                st.session_state.kb_loaded = False
+            
+            return True, f"Deleted knowledge base: {kb_name}"
+        else:
+            return False, f"Knowledge base not found: {kb_name}"
+    except Exception as e:
+        logger.error(f"Error deleting knowledge base: {e}", exc_info=True)
+        return False, f"Error: {str(e)}"
+
+def display_kb_management():
     """Display the knowledge base management interface."""
     st.title("📚 Knowledge Base Management")
     
-    # Ensure directories exist
-    ensure_directories()
+    # Get list of knowledge bases
+    kb_dir = Path("knowledge_bases")
+    kb_dir.mkdir(exist_ok=True)
+    knowledge_bases = [d.name for d in kb_dir.iterdir() if d.is_dir()]
     
-    # Sidebar for KB creation and settings
+    # Sidebar for KB selection and actions
     with st.sidebar:
-        st.header("Create Knowledge Base")
+        st.header("Knowledge Bases")
         
-        # KB name input
-        kb_name = st.text_input(
-            "Knowledge Base Name",
-            help="Enter a name for the new knowledge base"
-        ).strip()
+        if knowledge_bases:
+            selected_kb = st.selectbox(
+                "Select Knowledge Base",
+                options=knowledge_bases,
+                index=knowledge_bases.index(st.session_state.get("current_kb")) 
+                if st.session_state.get("current_kb") in knowledge_bases 
+                else 0
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Load KB", type="primary"):
+                    success, message = load_knowledge_base(selected_kb)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+            
+            with col2:
+                if st.button("Delete KB", type="secondary"):
+                    if st.session_state.get("current_kb") == selected_kb:
+                        st.error("Cannot delete active knowledge base")
+                    else:
+                        success, message = delete_knowledge_base(selected_kb)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+        else:
+            st.info("No knowledge bases found")
         
-        # File uploader
-        uploaded_files = st.file_uploader(
-            "Upload Documents",
-            type=["pdf", "txt", "docx"],
-            accept_multiple_files=True,
-            help="Select documents to add to the knowledge base"
-        )
-        
-        # Create KB button
-        if kb_name and uploaded_files:
-            if st.button("Create Knowledge Base", type="primary"):
-                try:
-                    # Create KB directory
-                    kb_path = os.path.join(KB_DIR, kb_name)
-                    os.makedirs(kb_path, exist_ok=True)
-                    
-                    # Save uploaded files
-                    file_paths = []
-                    for file in uploaded_files:
-                        file_path = os.path.join(UPLOADS_DIR, file.name)
-                        with open(file_path, "wb") as f:
-                            f.write(file.getvalue())
-                        file_paths.append(file_path)
-                    
-                    # Process documents
-                    with st.spinner("Processing documents..."):
-                        rag_instance.process_documents(file_paths)
-                        rag_instance.save_knowledge_base(kb_path)
-                    
-                    # Clean up uploaded files
-                    for file_path in file_paths:
-                        os.remove(file_path)
-                    
-                    st.success("Knowledge base created successfully!")
-                    st.rerun()
-                    
-                except Exception as e:
-                    st.error(f"Error creating knowledge base: {str(e)}")
+        # Display current status
+        st.divider()
+        st.header("Current Status")
+        if st.session_state.get("kb_loaded"):
+            st.success(f"📚 Active KB: {st.session_state.get('current_kb')}")
+        else:
+            st.info("No knowledge base loaded")
     
     # Main content area
-    st.header("Available Knowledge Bases")
+    st.header("Add Documents")
     
-    # Get list of knowledge bases
-    kbs = []
-    if os.path.exists(KB_DIR):
-        kbs = [d for d in os.listdir(KB_DIR) if os.path.isdir(os.path.join(KB_DIR, d))]
+    # File upload
+    uploaded_files = st.file_uploader(
+        "Upload documents to add to the knowledge base",
+        type=["pdf", "txt", "docx"],
+        accept_multiple_files=True,
+        help="Select one or more documents to process"
+    )
     
-    if not kbs:
-        st.info("No knowledge bases found. Create one using the sidebar.")
-    else:
-        # Display knowledge bases in a grid
-        cols = st.columns(3)
-        for idx, kb_name in enumerate(kbs):
-            kb_path = os.path.join(KB_DIR, kb_name)
-            with cols[idx % 3]:
-                with st.expander(f"📚 {kb_name}", expanded=True):
+    if uploaded_files:
+        st.text(f"Selected {len(uploaded_files)} files:")
+        for file in uploaded_files:
+            st.text(f"• {file.name} ({file.type})")
+        
+        # Only allow processing if a KB is selected
+        if st.session_state.get("current_kb"):
+            if st.button("Process Documents", type="primary"):
+                with st.spinner("Processing documents..."):
+                    success, message = process_files(
+                        uploaded_files,
+                        st.session_state.current_kb
+                    )
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+        else:
+            st.warning("Please load a knowledge base first")
+    
+    # Display KB information
+    if knowledge_bases:
+        st.divider()
+        st.header("Knowledge Base Information")
+        
+        for kb_name in knowledge_bases:
+            with st.expander(f"📚 {kb_name}", expanded=True):
+                kb_path = kb_dir / kb_name
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
                     st.metric("Size", get_kb_size(kb_path))
-                    
-                    # KB actions
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("Load", key=f"load_{kb_name}"):
-                            try:
-                                with st.spinner("Loading knowledge base..."):
-                                    rag_instance.load_knowledge_base(kb_path)
-                                    st.session_state.current_kb = kb_name
-                                    st.session_state.kb_loaded = True
-                                st.success("Knowledge base loaded!")
-                            except Exception as e:
-                                st.error(f"Error loading knowledge base: {str(e)}")
-                    
-                    with col2:
-                        if st.button("Delete", key=f"delete_{kb_name}"):
-                            try:
-                                shutil.rmtree(kb_path)
-                                st.success("Knowledge base deleted!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error deleting knowledge base: {str(e)}")
+                with col2:
+                    st.metric(
+                        "Status",
+                        "Active" if st.session_state.get("current_kb") == kb_name else "Inactive"
+                    )
+                with col3:
+                    st.metric(
+                        "Last Modified",
+                        datetime.fromtimestamp(kb_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+                    )
 
 if __name__ == "__main__":
-    kb_management_ui()
+    display_kb_management()
