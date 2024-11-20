@@ -102,22 +102,49 @@ class RAGSystem:
     def load_document(self, file_path: str) -> List[str]:
         """Load and split a document into chunks."""
         try:
+            # Verify file exists
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File not found: {file_path}")
+
             # Select appropriate loader based on file extension
             ext = Path(file_path).suffix.lower()
-            if ext == ".pdf":
-                loader = PyPDFLoader(file_path)
-            elif ext == ".txt":
-                loader = TextLoader(file_path)
-            elif ext == ".docx":
-                loader = Docx2txtLoader(file_path)
-            else:
-                loader = UnstructuredFileLoader(file_path)
+            try:
+                if ext == ".pdf":
+                    loader = PyPDFLoader(file_path)
+                elif ext == ".txt":
+                    loader = TextLoader(file_path, encoding='utf-8')
+                elif ext == ".docx":
+                    loader = Docx2txtLoader(file_path)
+                else:
+                    loader = UnstructuredFileLoader(file_path)
 
-            # Load and split the document
-            documents = loader.load()
-            chunks = self.text_splitter.split_documents(documents)
-            logger.info(f"Successfully loaded and split document: {file_path}")
-            return chunks
+                # Load and split the document
+                documents = loader.load()
+                if not documents:
+                    raise ValueError(f"No content found in file: {file_path}")
+
+                chunks = self.text_splitter.split_documents(documents)
+                if not chunks:
+                    raise ValueError(f"Document was split but no chunks were created: {file_path}")
+
+                logger.info(f"Successfully loaded and split document: {file_path}")
+                return chunks
+
+            except UnicodeDecodeError:
+                # Try different encodings if UTF-8 fails
+                encodings = ['latin-1', 'cp1252', 'iso-8859-1']
+                for encoding in encodings:
+                    try:
+                        loader = TextLoader(file_path, encoding=encoding)
+                        documents = loader.load()
+                        if documents:
+                            chunks = self.text_splitter.split_documents(documents)
+                            logger.info(f"Successfully loaded document with {encoding} encoding: {file_path}")
+                            return chunks
+                    except UnicodeDecodeError:
+                        continue
+
+                raise ValueError(f"Could not decode file with any supported encoding: {file_path}")
 
         except Exception as e:
             logger.error(f"Error loading document {file_path}: {str(e)}")
@@ -125,11 +152,27 @@ class RAGSystem:
 
     def process_documents(self, file_paths: List[str], kb_name: str = None) -> None:
         """Process multiple documents and create/update vector store."""
+        if not file_paths:
+            raise ValueError("No files provided for processing")
+
         try:
             all_chunks = []
+            failed_files = []
+
             for file_path in file_paths:
-                chunks = self.load_document(file_path)
-                all_chunks.extend(chunks)
+                try:
+                    chunks = self.load_document(file_path)
+                    if chunks:
+                        all_chunks.extend(chunks)
+                        logger.info(f"Successfully processed: {file_path}")
+                    else:
+                        failed_files.append((file_path, "No content extracted"))
+                except Exception as e:
+                    failed_files.append((file_path, str(e)))
+                    logger.error(f"Failed to process {file_path}: {str(e)}")
+
+            if not all_chunks:
+                raise ValueError("No valid content extracted from any of the provided files")
 
             # Create or update vector store
             if self.vector_store is None:
@@ -142,10 +185,16 @@ class RAGSystem:
             # Initialize conversation chain
             self._initialize_conversation_chain()
 
-            logger.info(f"Successfully processed {len(file_paths)} documents")
+            # Log results
+            success_count = len(file_paths) - len(failed_files)
+            logger.info(f"Successfully processed {success_count} out of {len(file_paths)} documents")
+            
+            if failed_files:
+                error_msg = "\n".join([f"- {path}: {error}" for path, error in failed_files])
+                logger.warning(f"Failed to process the following files:\n{error_msg}")
 
         except Exception as e:
-            logger.error(f"Error processing documents: {str(e)}")
+            logger.error(f"Error in document processing: {str(e)}")
             raise
 
     def save_knowledge_base(self, save_path: str) -> None:

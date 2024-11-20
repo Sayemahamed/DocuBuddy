@@ -131,38 +131,8 @@ class DocuBuddy:
         """
         st.title("DocuBuddy Chat")
 
-        # Sidebar for model configuration
-        with st.sidebar:
-            st.header("Model Settings")
-            model = st.selectbox(
-                "Select AI Model",
-                ["llama3.2", "mistral", "llama2", "codellama"],
-                index=0,
-            )
-            temperature = st.slider(
-                "Response Temperature",
-                min_value=0.0,
-                max_value=1.0,
-                value=0.7,
-                step=0.1,
-                help="Higher values make responses more creative",
-            )
-
-            # Update model if changed
-            if (
-                "current_model" not in st.session_state
-                or st.session_state.current_model != model
-            ):
-                st.session_state.current_model = model
-                rag_instance.update_model(model)
-
-            # Update temperature if changed
-            if (
-                "current_temperature" not in st.session_state
-                or st.session_state.current_temperature != temperature
-            ):
-                st.session_state.current_temperature = temperature
-                rag_instance.update_temperature(temperature)
+        # Setup sidebar with model configuration
+        self._setup_sidebar()
 
         # Initialize chat history
         if "messages" not in st.session_state:
@@ -216,9 +186,6 @@ class DocuBuddy:
     def run(self):
         """Run the DocuBuddy application."""
         try:
-            # Setup sidebar
-            self._setup_sidebar()
-
             # Load knowledge base if needed
             if not st.session_state.kb_loaded:
                 kb_path = os.path.join(KB_DIR, st.session_state.current_kb)

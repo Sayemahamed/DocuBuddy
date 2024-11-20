@@ -1,91 +1,127 @@
 # DocuBuddy 🤖
 
-An intelligent document interaction tool with advanced RAG (Retrieval Augmented Generation) capabilities.
+An intelligent document assistant with advanced RAG (Retrieval Augmented Generation) capabilities, robust error handling, and comprehensive document processing features.
 
-## 🌟 Features
+## 🌟 Key Features
 
-- 📄 Multi-format Document Support (PDF, TXT, DOCX)
-- 🔍 Semantic Search with Advanced RAG
-- 💬 Conversational Memory
-- 📚 Dynamic Knowledge Base Management
-- 📝 Source Document Tracking
-- 🎯 Precise Document Retrieval
+- 🤖 **Advanced AI Integration**
+  - Multiple AI model support (llama3.2, mistral, llama2, codellama)
+  - Configurable temperature settings
+  - Local inference using Ollama
+
+- 📚 **Robust Document Processing**
+  - Enhanced error handling
+  - Multi-encoding support
+  - Advanced document chunking
+  - Comprehensive format support (PDF, TXT, DOCX, and more)
+
+- 🔍 **Smart RAG System**
+  - Advanced Retrieval Augmented Generation
+  - Source document tracking
+  - Conversation memory management
+  - Semantic search capabilities
+
+- 💾 **Knowledge Base Management**
+  - Create and manage multiple knowledge bases
+  - Easy switching between bases
+  - Persistent storage
+  - Efficient vector indexing
+
+- ⚙️ **Advanced Configuration**
+  - Flexible model selection
+  - Temperature control
+  - Memory management
+  - Source attribution settings
 
 ## 🛠️ Technical Stack
 
-### AI Models
-- Default: llama3.2
-- Alternatives: mistral, llama2, codellama
-- Embeddings: nomic-embed-text via langchain-ollama
+### Core Technologies
+- **Framework**: Streamlit
+- **AI Backend**: LangChain + Ollama
+- **Vector Store**: FAISS
+- **Document Processing**: 
+  - Unstructured
+  - PyPDF2
+  - python-docx
+  - Various text encodings support
 
-### Core Dependencies
+### AI Models
+- **Default**: llama3.2
+- **Alternatives**: 
+  - mistral (fast, efficient)
+  - llama2 (reliable)
+  - codellama (code-specialized)
+- **Embeddings**: nomic-embed-text via langchain-ollama
+
+## 💻 System Requirements
+
 - Python 3.9+
-- Streamlit
-- LangChain (latest version)
-- langchain-community
-- langchain-ollama
-- FAISS
-- Ollama (local server)
+- 8GB+ RAM recommended
+- SSD storage recommended
+- Ollama (local installation)
+- Windows/Linux/MacOS support
 
 ## 🚀 Getting Started
 
-1. **Environment Setup**
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/Sayemahamed/DocuBuddy.git
+   cd DocuBuddy
+   ```
+
+2. **Environment Setup**
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   # On Windows:
+   .venv\Scripts\activate
+   # On Unix/MacOS:
+   source .venv/bin/activate
    pip install -r requirements.txt
    ```
 
-2. **Install Ollama**
-   - Download and install from [Ollama's website](https://ollama.ai/)
-   - Ensure the Ollama server is running locally
+3. **Install Ollama**
+   - Download from [Ollama's website](https://ollama.ai/)
+   - Install and ensure the Ollama server is running
 
-3. **Run DocuBuddy**
+4. **Run DocuBuddy**
    ```bash
    streamlit run DocuBuddy.py
    ```
 
 ## 📁 Project Structure
 
-- `DocuBuddy.py`: Main Streamlit application
-- `Agent.py`: Core RAG implementation
-- `pages/`:
-  - `1_File_Management.py`: Document upload and processing
-  - `2_Knowledge_Base_Management.py`: KB creation and management
-- `uploads/`: Temporary file storage
-- `knowledge_bases/`: Persistent KB storage
+```
+DocuBuddy/
+├── DocuBuddy.py        # Main application
+├── Agent.py            # RAG implementation
+├── pages/
+│   ├── 1_File_Management.py           # Document upload and management
+│   ├── 2_Knowledge_Base_Management.py # KB configuration
+│   └── 3_About.py                     # About page
+├── knowledge_bases/    # Storage for knowledge bases
+└── requirements.txt    # Project dependencies
+```
 
 ## 🔧 Configuration
 
-The system is configurable through the UI:
-- AI Model Selection
-- Temperature Settings
-- Knowledge Base Management
-- Document Processing Options
-
-## 🔒 Security Features
-
-- Local-only Processing
-- Safe File Handling
-- Input Validation
-- Secure Document Management
+- **Model Settings**: Select AI models and adjust temperature in the sidebar
+- **Knowledge Base**: Create and manage knowledge bases in the File Management page
+- **Document Processing**: Automatic format detection and processing
+- **Error Handling**: Comprehensive error management and recovery
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📝 Notes
+## 📝 License
 
-- Requires a running Ollama server
-- Supports multiple document formats
-- Uses local processing for security
-- Maintains conversation context
-- Provides source attribution
+This project is licensed under the Mozilla Public License 2.0 (MPL 2.0).
 
-## 📄 License
+## 👤 Author
 
-MIT License - See LICENSE file for details
+**MD Iftaker Ahamed Sayem**
+- GitHub: [@Sayemahamed](https://github.com/Sayemahamed)
+- Email: sayemahamed183@gmail.com
+
+---
+Made with ❤️ using Python, Streamlit, and the power of Local AI models

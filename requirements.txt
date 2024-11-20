@@ -17,6 +17,16 @@ docx2txt>=0.8
 PyPDF2>=3.0.0
 pymupdf>=1.24.0
 unstructured>=0.11.0
+unstructured-inference>=0.7.24
+extract-msg>=0.48.0
+tabulate>=0.9.0
+pdf2image>=1.17.0
+pdfminer.six>=20231228
+markdown>=3.5.2
+
+# Text Processing
+chardet>=5.2.0
+charset-normalizer>=3.3.2
 
 # Utilities
 python-dotenv>=1.0.0
@@ -31,9 +41,9 @@ aiofiles>=24.1.0
 asyncio>=3.4.3
 
 # Development
-black
-isort
-mypy
-pytest
-pytest-asyncio
-pytest-cov
+black>=24.2.0
+isort>=5.13.2
+mypy>=1.8.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.5
+pytest-cov>=4.1.0
