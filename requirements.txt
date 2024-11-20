@@ -1,40 +1,34 @@
-# Web Interface
+# Core Dependencies
 streamlit>=1.31.0
-streamlit-chat
-streamlit-extras
-
-# LangChain and LLM
 langchain>=0.1.0
 langchain-community>=0.0.16
 langchain-core>=0.1.17
 langchain-ollama>=0.0.1
 
-# Vector Store and Processing
+# Vector Store
 faiss-cpu>=1.7.4
-numpy
-pandas
+numpy>=1.26.4
+pandas>=2.2.3
 
 # Document Processing
-pymupdf
-python-magic-bin; platform_system=='Windows'
 python-docx>=1.1.0
+python-magic-bin>=0.4.14
 docx2txt>=0.8
 PyPDF2>=3.0.0
-
-# Async Support
-aiofiles
-asyncio
-
-# Utils
-python-dotenv>=1.0.0
-typing-extensions>=4.9.0
-tqdm
-pydantic>=2.6.0
-loguru
+pymupdf>=1.24.0
 unstructured>=0.11.0
+
+# Utilities
+python-dotenv>=1.0.0
 tiktoken>=0.5.2
-tenacity>=8.2.3
+pydantic>=2.6.0
 watchdog>=3.0.0
+typing-extensions>=4.9.0
+tenacity>=8.2.3
+tqdm>=4.67.0
+loguru>=0.7.2
+aiofiles>=24.1.0
+asyncio>=3.4.3
 
 # Development
 black

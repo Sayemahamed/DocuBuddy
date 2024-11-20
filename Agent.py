@@ -24,8 +24,7 @@ from langchain_core.memory import BaseMemory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferMemory
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
